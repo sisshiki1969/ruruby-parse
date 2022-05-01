@@ -3,6 +3,7 @@ extern crate clap;
 extern crate ruruby_parse;
 
 use clap::*;
+use reqwest::{self, StatusCode};
 use std::fs::*;
 use std::io::Read;
 use std::path::Path;
@@ -36,7 +37,7 @@ fn main() {
     }
 
     let file = if cli.args.is_empty() {
-        parse_and_output(include_str!("../quine/yamanote.rb").to_string());
+        parse_and_output("a=3; if a==3 then 0 else 1 end".to_string());
         return;
     } else {
         &cli.args[0]
@@ -63,7 +64,7 @@ fn main() {
 
 fn parse_and_output(program: String) {
     match ruruby_parse::Parser::parse_program(program, Path::new(""), "main") {
-        Ok(res) => println!("{:#?}", res),
+        Ok(res) => println!("{:#?}", res.node),
         Err(err) => panic!("{:?}\n{}", err.kind, err.source_info.get_location(&err.loc)),
     };
 }
@@ -80,7 +81,44 @@ fn load_file(path: &Path) -> Result<String, String> {
     Ok(file_body)
 }
 
-#[test]
-fn yamanote() {
-    parse_and_output(include_str!("../quine/yamanote.rb").to_string());
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fetch_file(url: &str) -> String {
+        let res = match reqwest::blocking::get(url) {
+            Ok(res) => res,
+            Err(err) => panic!("{:?}", err),
+        };
+        if res.status() != StatusCode::OK {
+            panic!("{:?}", res.status());
+        };
+        res.text().unwrap()
+    }
+
+    #[test]
+    fn yamanote() {
+        let code =
+        fetch_file("https://raw.githubusercontent.com/mame/yamanote-quine/master/yamanote-quine-inner-circle.rb");
+        parse_and_output(code);
+        let code =
+    fetch_file("https://raw.githubusercontent.com/mame/yamanote-quine/master/yamanote-quine-outer-circle.rb");
+        parse_and_output(code);
+    }
+
+    #[test]
+    fn aobench() {
+        let code = fetch_file(
+            "https://raw.githubusercontent.com/ruby/ruby/master/benchmark/app_aobench.rb",
+        );
+        parse_and_output(code);
+    }
+
+    #[test]
+    fn optcarrot() {
+        let code = fetch_file(
+            "https://raw.githubusercontent.com/mame/optcarrot/master/lib/optcarrot/ppu.rb",
+        );
+        parse_and_output(code);
+    }
 }
