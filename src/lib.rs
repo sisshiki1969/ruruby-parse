@@ -9,7 +9,7 @@ mod token;
 use error::*;
 use id_table::*;
 use lvar_collector::*;
-use node::*;
+pub use node::*;
 pub use parser::*;
 use source_info::*;
 use token::*;

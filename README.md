@@ -16,10 +16,8 @@ pub fn parse_program(code: String, path: impl Into<PathBuf>, context_name: &str)
 ### parse script file and print
 
 ```sh
-> cargo run -- quine/yamanote.rb
+> cargo run -- <awesome-ruby-script.rb>
 ```
-
-* `yamanote.rb` is from <https://github.com/mame/yamanote-quine/blob/master/yamanote-quine-inner-circle.rb>.
 
 ### one liner
 
