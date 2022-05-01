@@ -5,6 +5,7 @@ use std::num::NonZeroU32;
 /// Wrapper of ID for strings.
 ///
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct IdentId(NonZeroU32);
 
 impl From<IdentId> for usize {

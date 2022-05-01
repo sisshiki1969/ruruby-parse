@@ -3,7 +3,6 @@ extern crate clap;
 extern crate ruruby_parse;
 
 use clap::*;
-use reqwest::{self, StatusCode};
 use std::fs::*;
 use std::io::Read;
 use std::path::Path;
@@ -84,6 +83,7 @@ fn load_file(path: &Path) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use reqwest::StatusCode;
 
     fn fetch_file(url: &str) -> String {
         let res = match reqwest::blocking::get(url) {
