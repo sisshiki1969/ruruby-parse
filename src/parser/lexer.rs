@@ -482,7 +482,7 @@ impl<'a> Lexer<'a> {
     pub(crate) fn read_method_name(
         &mut self,
         allow_assign_like: bool,
-    ) -> Result<(IdentId, Loc), LexerErr> {
+    ) -> Result<(String, Loc), LexerErr> {
         self.flush();
         while self.consume_whitespace() || self.consume_newline() {}
         self.token_start_pos = self.pos;
@@ -538,12 +538,12 @@ impl<'a> Lexer<'a> {
             return Err(self.error_unexpected(self.token_start_pos));
         };
         Ok((
-            IdentId::get_id(self.current_slice()),
+            self.current_slice().to_string(),
             Loc(self.token_start_pos, self.pos),
         ))
     }
 
-    pub(crate) fn read_symbol_literal(&mut self) -> Result<Option<(IdentId, Loc)>, LexerErr> {
+    pub(crate) fn read_symbol_literal(&mut self) -> Result<Option<(String, Loc)>, LexerErr> {
         self.flush();
         self.token_start_pos = self.pos;
         let ch = self.peek().ok_or_else(|| self.error_unexpected(self.pos))?;
@@ -557,7 +557,7 @@ impl<'a> Lexer<'a> {
                 }
                 self.consume_ident();
                 Ok(Some((
-                    IdentId::get_id(self.current_slice()),
+                    self.current_slice().to_string(),
                     Loc(self.token_start_pos, self.pos),
                 )))
             }
@@ -569,13 +569,13 @@ impl<'a> Lexer<'a> {
     /// Check method name extension.
     /// Parse "xxxx=" as a valid mathod name.
     /// "xxxx!=" or "xxxx?=" is invalid.
-    pub(crate) fn read_method_ext(&mut self, s: &str) -> Result<IdentId, LexerErr> {
+    pub(crate) fn read_method_ext(&mut self, s: &str) -> Result<String, LexerErr> {
         self.flush();
         let id =
             if !(s.ends_with(&['!', '?'][..])) && self.peek2() != Some('>') && self.consume('=') {
-                IdentId::get_id(&format!("{}=", s))
+                format!("{}=", s)
             } else {
-                IdentId::get_id(s)
+                s.to_string()
             };
         Ok(id)
     }
@@ -1641,10 +1641,7 @@ mod test {
     fn method_name() {
         fn assert(program: &str, expect: &str) {
             let mut lexer = Lexer::new(program);
-            assert_eq!(
-                lexer.read_method_name(true).unwrap().0,
-                (IdentId::get_id(expect))
-            );
+            assert_eq!(lexer.read_method_name(true).unwrap().0, expect);
         }
         assert("Func", "Func");
         assert("Func!", "Func!");

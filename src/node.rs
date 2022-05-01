@@ -268,7 +268,7 @@ impl BinOp {
         )
     }
 
-    pub fn to_method(self) -> IdentId {
+    /*pub fn to_method(self) -> IdentId {
         let s = match self {
             Self::Add => "+",
             Self::Sub => "-",
@@ -294,7 +294,7 @@ impl BinOp {
             Self::Match => "=~",
         };
         IdentId::get_id(s)
-    }
+    }*/
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -306,7 +306,7 @@ pub enum UnOp {
 }
 
 impl UnOp {
-    pub fn to_method(self) -> IdentId {
+    /*pub fn to_method(self) -> IdentId {
         let s = match self {
             Self::BitNot => "~",
             Self::Not => "!",
@@ -314,7 +314,7 @@ impl UnOp {
             Self::Neg => "-@",
         };
         IdentId::get_id(s)
-    }
+    }*/
 }
 
 impl Node {
@@ -465,8 +465,7 @@ impl Node {
         Node::new(NodeKind::LocalVar(id), loc)
     }
 
-    pub(crate) fn new_identifier(name: &str, loc: Loc) -> Self {
-        let id = IdentId::get_id(name);
+    pub(crate) fn new_identifier(id: IdentId, loc: Loc) -> Self {
         Node::new(NodeKind::Ident(id), loc)
     }
 
@@ -474,18 +473,15 @@ impl Node {
         Node::new(NodeKind::Symbol(id), loc)
     }
 
-    pub(crate) fn new_instance_var(name: &str, loc: Loc) -> Self {
-        let id = IdentId::get_id(name);
+    pub(crate) fn new_instance_var(id: IdentId, loc: Loc) -> Self {
         Node::new(NodeKind::InstanceVar(id), loc)
     }
 
-    pub(crate) fn new_class_var(name: &str, loc: Loc) -> Self {
-        let id = IdentId::get_id(name);
+    pub(crate) fn new_class_var(id: IdentId, loc: Loc) -> Self {
         Node::new(NodeKind::ClassVar(id), loc)
     }
 
-    pub(crate) fn new_global_var(name: &str, loc: Loc) -> Self {
-        let id = IdentId::get_id(name);
+    pub(crate) fn new_global_var(id: IdentId, loc: Loc) -> Self {
         Node::new(NodeKind::GlobalVar(id), loc)
     }
 
@@ -493,13 +489,11 @@ impl Node {
         Node::new(NodeKind::SpecialVar(id), loc)
     }
 
-    pub(crate) fn new_const(name: &str, toplevel: bool, loc: Loc) -> Self {
-        let id = IdentId::get_id(name);
+    pub(crate) fn new_const(id: IdentId, toplevel: bool, loc: Loc) -> Self {
         Node::new(NodeKind::Const { toplevel, id }, loc)
     }
 
-    pub(crate) fn new_scope(parent: Node, name: &str, loc: Loc) -> Self {
-        let id = IdentId::get_id(name);
+    pub(crate) fn new_scope(parent: Node, id: IdentId, loc: Loc) -> Self {
         Node::new(NodeKind::Scope(Box::new(parent), id), loc)
     }
 

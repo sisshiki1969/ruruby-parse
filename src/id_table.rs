@@ -1,23 +1,11 @@
 use fxhash::FxHashMap;
-use std::fmt;
-use std::lazy::SyncLazy;
 use std::num::NonZeroU32;
-use std::sync::{Arc, Mutex};
-
-static ID: SyncLazy<Arc<Mutex<IdentifierTable>>> =
-    SyncLazy::new(|| Arc::new(Mutex::new(IdentifierTable::new())));
 
 ///
 /// Wrapper of ID for strings.
 ///
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IdentId(NonZeroU32);
-
-impl fmt::Debug for IdentId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.get_name())
-    }
-}
 
 impl From<IdentId> for usize {
     #[inline(always)]
@@ -77,74 +65,17 @@ impl IdentId {
     pub const EACH: IdentId = id!(27);
     pub const MAP: IdentId = id!(28);
     pub const _NAME: IdentId = id!(29);
+    pub const _DOT3: IdentId = id!(30);
 }
 
 impl IdentId {
     fn to_usize(&self) -> usize {
         self.0.get() as usize
     }
-
-    #[inline(always)]
-    pub fn get_id<'a>(name: &str) -> Self {
-        ID.lock().unwrap().get_ident_id(name)
-    }
-
-    #[inline(always)]
-    pub fn get_id_from_string<'a>(name: String) -> Self {
-        ID.lock().unwrap().get_ident_id_from_string(name)
-    }
-
-    #[inline(always)]
-    pub fn get_name(&self) -> String {
-        ID.lock().unwrap().get_name(*self).to_string()
-    }
-
-    #[inline(always)]
-    pub fn get_ident_name(id: impl Into<Option<IdentId>>) -> String {
-        match id.into() {
-            Some(id) => id.get_name(),
-            None => "".to_string(),
-        }
-    }
-
-    #[inline(always)]
-    pub fn starts_with(&self, pat: &str) -> bool {
-        ID.lock().unwrap().get_name(*self).starts_with(pat)
-    }
-
-    #[inline(always)]
-    pub fn is_constant(&self) -> bool {
-        ID.lock()
-            .unwrap()
-            .get_name(*self)
-            .starts_with(|c: char| c.is_ascii_uppercase())
-    }
-
-    #[inline(always)]
-    pub fn is_global_var(&self) -> bool {
-        ID.lock().unwrap().get_name(*self).starts_with('$')
-    }
-
-    #[inline(always)]
-    pub fn is_class_var(&self) -> bool {
-        ID.lock().unwrap().get_name(*self).starts_with("@@")
-    }
-
-    #[inline(always)]
-    pub fn add_postfix(&self, postfix: &str) -> IdentId {
-        let new_name = format!("{:?}{}", *self, postfix);
-        IdentId::get_id_from_string(new_name)
-    }
-
-    #[inline(always)]
-    pub fn add_prefix(&self, prefix: &str) -> IdentId {
-        let new_name = format!("{}{:?}", prefix, *self);
-        IdentId::get_id_from_string(new_name)
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-struct IdentifierTable {
+pub struct IdentifierTable {
     rev_table: FxHashMap<String, IdentId>,
     table: Vec<String>,
 }
@@ -185,6 +116,7 @@ impl IdentifierTable {
         table.set_ident_id("each", IdentId::EACH);
         table.set_ident_id("map", IdentId::MAP);
         table.set_ident_id("/name", IdentId::_NAME);
+        table.set_ident_id("...", IdentId::_DOT3);
         table
     }
 
@@ -193,7 +125,7 @@ impl IdentifierTable {
         self.table[id.to_usize()] = name.to_string();
     }
 
-    fn get_ident_id<'a>(&mut self, name: &str) -> IdentId {
+    pub fn get_ident_id<'a>(&mut self, name: &str) -> IdentId {
         match self.rev_table.get(name) {
             Some(id) => (*id).into(),
             None => {
@@ -205,7 +137,7 @@ impl IdentifierTable {
         }
     }
 
-    fn get_ident_id_from_string<'a>(&mut self, name: String) -> IdentId {
+    pub fn get_ident_id_from_string<'a>(&mut self, name: String) -> IdentId {
         match self.rev_table.get(&name) {
             Some(id) => (*id).into(),
             None => {
@@ -217,7 +149,7 @@ impl IdentifierTable {
         }
     }
 
-    fn get_name(&self, id: IdentId) -> &str {
+    pub fn get_name(&self, id: IdentId) -> &str {
         &self.table[id.to_usize()]
     }
 }

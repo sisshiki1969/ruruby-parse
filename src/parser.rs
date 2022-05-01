@@ -36,6 +36,8 @@ pub struct Parser<'a> {
     path: PathBuf,
     prev_loc: Loc,
     context_stack: Vec<ParseContext>,
+    /// identifier table.
+    id_store: IdentifierTable,
     extern_context: Option<DummyFrame>,
     /// this flag suppress accesory assignment. e.g. x=3
     suppress_acc_assign: bool,
@@ -82,6 +84,7 @@ impl<'a> Parser<'a> {
             path,
             prev_loc: Loc(0, 0),
             context_stack: vec![parse_context],
+            id_store: IdentifierTable::new(),
             extern_context,
             suppress_acc_assign: false,
             suppress_mul_assign: false,
@@ -202,8 +205,14 @@ impl<'a> Parser<'a> {
         false
     }
 
-    fn get_ident_id(&self, method: &str) -> IdentId {
-        IdentId::get_id(method)
+    /// Get *IdentId* from &str.
+    fn get_id(&mut self, string: &str) -> IdentId {
+        self.id_store.get_ident_id(string)
+    }
+
+    /// Get *IdentId* from String.
+    fn get_id_from_string(&mut self, string: String) -> IdentId {
+        self.id_store.get_ident_id_from_string(string)
     }
 
     /// Peek next token (skipping line terminators).
@@ -265,7 +274,7 @@ impl<'a> Parser<'a> {
         match self.peek()?.kind {
             TokenKind::Ident(s) => {
                 self.get()?;
-                Ok(Some(self.get_ident_id(&s)))
+                Ok(Some(self.get_id_from_string(s)))
             }
             _ => Ok(None),
         }
@@ -364,7 +373,7 @@ impl<'a> Parser<'a> {
     /// If not, return RubyError.
     fn expect_ident(&mut self) -> Result<IdentId, LexerErr> {
         match &self.get()?.kind {
-            TokenKind::Ident(s) => Ok(self.get_ident_id(s)),
+            TokenKind::Ident(s) => Ok(self.get_id(s)),
             _ => Err(error_unexpected(self.prev_loc(), "Expect identifier.")),
         }
     }
@@ -372,11 +381,23 @@ impl<'a> Parser<'a> {
     /// Get the next token and examine whether it is Const.
     /// Return IdentId of the Const.
     /// If not, return RubyError.
-    fn expect_const(&mut self) -> Result<String, LexerErr> {
+    fn expect_const(&mut self) -> Result<IdentId, LexerErr> {
         match self.get()?.kind {
-            TokenKind::Const(s) => Ok(s),
+            TokenKind::Const(s) => Ok(self.get_id_from_string(s)),
             _ => Err(error_unexpected(self.prev_loc(), "Expect constant.")),
         }
+    }
+
+    fn read_method_name(&mut self, allow_assign_like: bool) -> Result<(IdentId, Loc), LexerErr> {
+        self.lexer
+            .read_method_name(allow_assign_like)
+            .map(|(s, loc)| (self.get_id_from_string(s), loc))
+    }
+
+    fn read_method_ext(&mut self, s: &str) -> Result<IdentId, LexerErr> {
+        self.lexer
+            .read_method_ext(s)
+            .map(|s| self.get_id_from_string(s))
     }
 }
 
@@ -434,8 +455,8 @@ impl<'a> Parser<'a> {
             Punct::Rem => Ok(IdentId::_REM),
             Punct::Shl => Ok(IdentId::_SHL),
             Punct::Shr => Ok(IdentId::_SHR),
-            Punct::BitAnd => Ok(IdentId::get_id("&")),
-            Punct::BitOr => Ok(IdentId::get_id("|")),
+            Punct::BitAnd => Ok(self.get_id("&")),
+            Punct::BitOr => Ok(self.get_id("|")),
 
             Punct::Cmp => Ok(IdentId::_CMP),
             Punct::Eq => Ok(IdentId::_EQ),
@@ -445,7 +466,7 @@ impl<'a> Parser<'a> {
             Punct::Gt => Ok(IdentId::_GT),
             Punct::Ge => Ok(IdentId::_GE),
             Punct::TEq => Ok(IdentId::_TEQ),
-            Punct::Match => Ok(IdentId::get_id("=~")),
+            Punct::Match => Ok(self.get_id("=~")),
             Punct::LBracket => {
                 if self.consume_punct_no_term(Punct::RBracket)? {
                     if self.consume_punct_no_term(Punct::Assign)? {
@@ -690,31 +711,31 @@ enum ParseContextKind {
 struct ParseContext {
     lvar: LvarCollector,
     kind: ParseContextKind,
-    name: Option<IdentId>,
+    //name: Option<IdentId>,
 }
 
 impl ParseContext {
-    fn new_method(name: IdentId) -> Self {
+    fn new_method(_name: IdentId) -> Self {
         ParseContext {
             lvar: LvarCollector::new(),
             kind: ParseContextKind::Method,
-            name: Some(name),
+            //name: Some(name),
         }
     }
 
-    fn new_eval(name: &str, lvar_collector: Option<LvarCollector>) -> Self {
+    fn new_eval(_name: &str, lvar_collector: Option<LvarCollector>) -> Self {
         ParseContext {
             lvar: lvar_collector.unwrap_or_default(),
             kind: ParseContextKind::Eval,
-            name: Some(IdentId::get_id(name)),
+            //name: Some(IdentId::get_id(name)),
         }
     }
 
-    fn new_class(name: IdentId, lvar_collector: Option<LvarCollector>) -> Self {
+    fn new_class(_name: IdentId, lvar_collector: Option<LvarCollector>) -> Self {
         ParseContext {
             lvar: lvar_collector.unwrap_or_default(),
             kind: ParseContextKind::Class,
-            name: Some(name),
+            //name: Some(name),
         }
     }
 
@@ -722,7 +743,7 @@ impl ParseContext {
         ParseContext {
             lvar: lvar_collector.unwrap_or_default(),
             kind: ParseContextKind::Block,
-            name: None,
+            //name: None,
         }
     }
 
@@ -730,7 +751,7 @@ impl ParseContext {
         ParseContext {
             lvar: LvarCollector::new(),
             kind: ParseContextKind::For,
-            name: None,
+            //name: None,
         }
     }
 }

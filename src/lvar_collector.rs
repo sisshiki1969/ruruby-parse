@@ -120,7 +120,7 @@ impl LvarCollector {
     /// Add a delegate parameter `val` to the `LvarCollector`.
     /// Return None if `val` already exists.
     pub fn insert_delegate_param(&mut self) -> Option<LvarId> {
-        let lvar = self.insert_new(IdentId::get_id("..."))?;
+        let lvar = self.insert_new(IdentId::_DOT3)?;
         self.delegate_param = Some(lvar);
         Some(lvar)
     }

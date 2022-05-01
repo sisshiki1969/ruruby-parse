@@ -284,16 +284,13 @@ impl Token {
         )
     }
 
-    pub(crate) fn can_be_symbol(&self) -> Option<IdentId> {
+    pub(crate) fn can_be_symbol(&self) -> Option<String> {
         let id = match &self.kind {
-            TokenKind::Ident(ident) => IdentId::get_id(ident),
-            TokenKind::Const(ident) => IdentId::get_id(ident),
-            TokenKind::InstanceVar(ident) => IdentId::get_id(ident),
-            TokenKind::StringLit(ident) => IdentId::get_id(ident),
-            TokenKind::Reserved(reserved) => {
-                let s = get_string_from_reserved(reserved);
-                IdentId::get_id_from_string(s)
-            }
+            TokenKind::Ident(ident) => ident.to_string(),
+            TokenKind::Const(ident) => ident.to_string(),
+            TokenKind::InstanceVar(ident) => ident.to_string(),
+            TokenKind::StringLit(ident) => ident.to_string(),
+            TokenKind::Reserved(reserved) => get_string_from_reserved(reserved),
             _ => return None,
         };
         Some(id)

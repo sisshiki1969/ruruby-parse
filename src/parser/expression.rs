@@ -519,7 +519,7 @@ impl<'a> Parser<'a> {
                 let loc = self.prev_loc();
                 if let TokenKind::Const(_) = self.peek()?.kind {
                     let name = self.expect_const()?;
-                    Node::new_scope(node, &name, self.prev_loc().merge(loc))
+                    Node::new_scope(node, name, self.prev_loc().merge(loc))
                 } else {
                     self.parse_primary_method(node, false)?
                 }
@@ -584,10 +584,10 @@ impl<'a> Parser<'a> {
         if self.consume_punct_no_term(Punct::LParen)? {
             let arglist = self.parse_arglist_block(Punct::RParen)?;
             //let loc = receiver.loc().merge(self.loc());
-            let node = Node::new_send(receiver, IdentId::get_id("call"), arglist, false, loc);
+            let node = Node::new_send(receiver, self.get_id("call"), arglist, false, loc);
             return Ok(node);
         };
-        let (id, loc) = self.lexer.read_method_name(false)?;
+        let (id, loc) = self.read_method_name(false)?;
         let arglist = if self.consume_punct_no_term(Punct::LParen)? {
             self.parse_arglist_block(Punct::RParen)?
         } else {
@@ -634,16 +634,16 @@ impl<'a> Parser<'a> {
                     _ => {}
                 };
 
+                let id = self.get_id_from_string(name);
                 if self.lexer.trailing_lparen() {
-                    let node = Node::new_identifier(&name, loc);
+                    let node = Node::new_identifier(id, loc);
                     return self.parse_function_args(node);
                 };
-                let id = self.get_ident_id(&name);
                 if self.is_local_var(id) {
                     Ok(Node::new_lvar(id, loc))
                 } else {
                     // FUNCTION or COMMAND or LHS for assignment
-                    let node = Node::new_identifier(&name, loc);
+                    let node = Node::new_identifier(id, loc);
                     if let Ok(tok) = self.peek_no_term() {
                         match tok.kind {
                             // Multiple assignment
@@ -663,19 +663,28 @@ impl<'a> Parser<'a> {
                     }
                 }
             }
-            TokenKind::InstanceVar(name) => Ok(Node::new_instance_var(&name, loc)),
-            TokenKind::ClassVar(name) => Ok(Node::new_class_var(&name, loc)),
-            TokenKind::GlobalVar(name) => Ok(Node::new_global_var(&name, loc)),
+            TokenKind::InstanceVar(name) => {
+                let id = self.get_id_from_string(name);
+                Ok(Node::new_instance_var(id, loc))
+            }
+            TokenKind::ClassVar(name) => {
+                let id = self.get_id_from_string(name);
+                Ok(Node::new_class_var(id, loc))
+            }
+            TokenKind::GlobalVar(name) => {
+                let id = self.get_id_from_string(name);
+                Ok(Node::new_global_var(id, loc))
+            }
             TokenKind::SpecialVar(id) => Ok(Node::new_special_var(id, loc)),
             TokenKind::Const(name) => {
+                let id = self.get_id_from_string(name);
                 if self.lexer.trailing_lparen() {
-                    let node = Node::new_identifier(&name, loc);
+                    let node = Node::new_identifier(id, loc);
                     self.parse_function_args(node)
                 } else if !suppress_unparen_call && self.is_command() {
-                    let id = self.get_ident_id(&name);
                     Ok(self.parse_command(id, loc)?)
                 } else {
-                    Ok(Node::new_const(&name, false, loc))
+                    Ok(Node::new_const(id, false, loc))
                 }
             }
             TokenKind::IntegerLit(num) => Ok(Node::new_integer(num, loc)),
@@ -720,7 +729,7 @@ impl<'a> Parser<'a> {
                 Punct::Arrow => self.parse_lambda_literal(),
                 Punct::Scope => {
                     let name = self.expect_const()?;
-                    Ok(Node::new_const(&name, true, loc))
+                    Ok(Node::new_const(name, true, loc))
                 }
                 Punct::Div => self.parse_regexp(),
                 Punct::Rem => self.parse_percent_notation(),

@@ -99,7 +99,7 @@ impl<'a> Parser<'a> {
                     let ary = content
                         .split(|c| c == ' ' || c == '\n')
                         .filter(|x| x != &"")
-                        .map(|x| Node::new_symbol(IdentId::get_id(x), loc))
+                        .map(|x| Node::new_symbol(self.get_id(x), loc))
                         .collect();
                     Ok(Node::new_array(ary, tok.loc))
                 }
@@ -175,6 +175,7 @@ impl<'a> Parser<'a> {
                     let save = self.save_state();
                     self.get().unwrap();
                     if self.consume_punct(Punct::Colon)? {
+                        let id = self.get_id_from_string(id);
                         symbol_flag = true;
                         Node::new_symbol(id, ident_loc)
                     } else {
@@ -204,6 +205,7 @@ impl<'a> Parser<'a> {
         }
         // Symbol literal
         if let Some((id, ident_loc)) = self.lexer.read_symbol_literal()? {
+            let id = self.get_id_from_string(id);
             return Ok(Node::new_symbol(id, loc.merge(ident_loc)));
         };
         let token = self.get()?;
@@ -211,11 +213,11 @@ impl<'a> Parser<'a> {
         let id = match &token.kind {
             TokenKind::OpenString(s, term, level) => {
                 let node = self.parse_interporated_string_literal(s, *term, *level)?;
-                let method = self.get_ident_id("to_sym");
+                let method = self.get_id("to_sym");
                 let loc = symbol_loc.merge(node.loc());
                 return Ok(Node::new_send_noarg(node, method, false, loc));
             }
-            TokenKind::StringLit(ident) => IdentId::get_id(ident),
+            TokenKind::StringLit(ident) => self.get_id(ident),
             _ => return Err(error_unexpected(symbol_loc, "Expect identifier or string.")),
         };
         Ok(Node::new_symbol(id, loc.merge(self.prev_loc())))
@@ -297,8 +299,14 @@ impl<'a> Parser<'a> {
             let tok = self.get()?;
             let loc = tok.loc();
             let node = match &tok.kind {
-                TokenKind::GlobalVar(s) => Node::new_global_var(s, loc),
-                TokenKind::InstanceVar(s) => Node::new_instance_var(s, loc),
+                TokenKind::GlobalVar(s) => {
+                    let id = self.get_id(s);
+                    Node::new_global_var(id, loc)
+                }
+                TokenKind::InstanceVar(s) => {
+                    let id = self.get_id(s);
+                    Node::new_instance_var(id, loc)
+                }
                 _ => unreachable!("{:?}", tok),
             };
             nodes.push(node);
@@ -313,6 +321,7 @@ impl<'a> Parser<'a> {
             path: self.path.clone(),
             prev_loc: Loc(0, 0),
             context_stack: vec![],
+            id_store: IdentifierTable::new(),
             extern_context: None,
             suppress_acc_assign: false,
             suppress_mul_assign: false,

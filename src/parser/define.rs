@@ -15,52 +15,52 @@ impl<'a> Parser<'a> {
         let loc = tok.loc;
         let (singleton, name) = match &tok.kind {
             TokenKind::GlobalVar(name) => {
+                let id = self.get_id(name);
                 self.consume_punct_no_term(Punct::Dot)?;
                 (
-                    Some(Node::new_global_var(name, loc)),
-                    self.lexer.read_method_name(true)?.0,
+                    Some(Node::new_global_var(id, loc)),
+                    self.read_method_name(true)?.0,
                 )
             }
             TokenKind::InstanceVar(name) => {
                 self.consume_punct_no_term(Punct::Dot)?;
+                let id = self.get_id(name);
                 (
-                    Some(Node::new_instance_var(name, loc)),
-                    self.lexer.read_method_name(true)?.0,
+                    Some(Node::new_instance_var(id, loc)),
+                    self.read_method_name(true)?.0,
                 )
             }
             TokenKind::Reserved(r) => {
                 let s = get_string_from_reserved(r);
-                (None, self.lexer.read_method_ext(&s)?)
+                (None, self.read_method_ext(&s)?)
             }
             TokenKind::Ident(s) => {
                 if s.as_str() == "self" {
                     self.consume_punct_no_term(Punct::Dot)?;
-                    (
-                        Some(Node::new_self(loc)),
-                        self.lexer.read_method_name(true)?.0,
-                    )
+                    (Some(Node::new_self(loc)), self.read_method_name(true)?.0)
                 } else if self.consume_punct_no_term(Punct::Dot)?
                     || self.consume_punct_no_term(Punct::Scope)?
                 {
-                    let id = IdentId::get_id(s);
+                    let id = self.get_id(s);
                     (
                         Some(Node::new_lvar(id, loc)),
-                        self.lexer.read_method_name(true)?.0,
+                        self.read_method_name(true)?.0,
                     )
                 } else {
-                    (None, self.lexer.read_method_ext(s)?)
+                    (None, self.read_method_ext(s)?)
                 }
             }
             TokenKind::Const(s) => {
                 if self.consume_punct_no_term(Punct::Dot)?
                     || self.consume_punct_no_term(Punct::Scope)?
                 {
+                    let id = self.get_id(s);
                     (
-                        Some(Node::new_const(s, false, loc)),
-                        self.lexer.read_method_name(true)?.0,
+                        Some(Node::new_const(id, false, loc)),
+                        self.read_method_name(true)?.0,
                     )
                 } else {
-                    (None, self.lexer.read_method_ext(s)?)
+                    (None, self.read_method_ext(s)?)
                 }
             }
             TokenKind::Punct(p) => (None, self.parse_op_definable(p)?),
@@ -128,8 +128,9 @@ impl<'a> Parser<'a> {
         let singleton = self.parse_expr()?;
         let loc = loc.merge(self.prev_loc());
         self.consume_term()?;
+        let singleton_id = self.get_id("Singleton");
         self.context_stack
-            .push(ParseContext::new_class(IdentId::get_id("Singleton"), None));
+            .push(ParseContext::new_class(singleton_id, None));
         let body = self.parse_begin()?;
         let lvar = self.context_stack.pop().unwrap().lvar;
         Ok(Node::new_singleton_class_decl(singleton, body, lvar, loc))
@@ -141,12 +142,12 @@ impl<'a> Parser<'a> {
         } else if let TokenKind::GlobalVar(_) = self.peek_no_term()?.kind {
             let tok = self.get()?;
             match &tok.kind {
-                TokenKind::GlobalVar(name) => Ok(Node::new_symbol(IdentId::get_id(name), tok.loc)),
+                TokenKind::GlobalVar(name) => Ok(Node::new_symbol(self.get_id(name), tok.loc)),
                 _ => unreachable!(),
             }
         } else {
             Ok(Node::new_symbol(
-                self.lexer.read_method_name(true)?.0,
+                self.read_method_name(true)?.0,
                 self.prev_loc(),
             ))
         }
@@ -179,7 +180,7 @@ impl<'a> Parser<'a> {
             } else if self.consume_punct_no_term(Punct::Scope)? {
                 let loc = self.prev_loc();
                 let name = self.expect_const()?;
-                Node::new_scope(node, &name, loc)
+                Node::new_scope(node, name, loc)
             } else {
                 return Ok(node);
             };
