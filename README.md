@@ -1,5 +1,8 @@
 # ruruby-parse
 
+[![Rust](https://github.com/sisshiki1969/ruruby-parse/actions/workflows/rust.yml/badge.svg?branch=master)](https://github.com/sisshiki1969/ruruby-parse/actions/workflows/rust.yml)
+[![codecov](https://codecov.io/gh/sisshiki1969/ruruby-parse/branch/master/graph/badge.svg?token=vAvpafdKER)](https://codecov.io/gh/sisshiki1969/ruruby-parse)
+
 a Ruby parser written in Rust.
 
 ## using as a library
