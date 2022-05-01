@@ -77,7 +77,7 @@ impl<'a> Parser<'a> {
         path: PathBuf,
         extern_context: Option<DummyFrame>,
         parse_context: ParseContext,
-    ) -> Result<(Node, LvarCollector, Token), LexerErr> {
+    ) -> Result<(Node, LvarCollector, Token, IdentifierTable), LexerErr> {
         let lexer = Lexer::new(code);
         let mut parser = Parser {
             lexer,
@@ -93,7 +93,9 @@ impl<'a> Parser<'a> {
         let node = parser.parse_comp_stmt()?;
         let lvar = parser.context_stack.pop().unwrap().lvar;
         let tok = parser.peek()?;
-        Ok((node, lvar, tok))
+        let mut id_store = IdentifierTable::new();
+        std::mem::swap(&mut parser.id_store, &mut id_store);
+        Ok((node, lvar, tok, id_store))
     }
 
     fn save_state(&self) -> (usize, usize) {
@@ -670,13 +672,14 @@ fn parse(
     parse_context: ParseContext,
 ) -> Result<ParseResult, ParseErr> {
     match Parser::new(&code, path.clone(), extern_context, parse_context) {
-        Ok((node, lvar_collector, tok)) => {
+        Ok((node, lvar_collector, tok, id_store)) => {
             let source_info = SourceInfoRef::new(SourceInfo::new(path, code));
             if tok.is_eof() {
                 let result = ParseResult {
                     node,
                     lvar_collector,
                     source_info,
+                    id_store,
                 };
                 Ok(result)
             } else {
@@ -696,6 +699,7 @@ pub struct ParseResult {
     pub node: Node,
     pub lvar_collector: LvarCollector,
     pub source_info: SourceInfoRef,
+    pub id_store: IdentifierTable,
 }
 
 #[derive(Debug, Clone, PartialEq)]
