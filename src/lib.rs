@@ -6,12 +6,12 @@ mod node;
 mod parser;
 mod source_info;
 mod token;
-use error::*;
-use id_table::*;
+pub use error::*;
+pub use id_table::*;
 use lvar_collector::*;
 pub use node::*;
 pub use parser::*;
-use source_info::*;
+pub use source_info::*;
 use token::*;
 
 #[derive(Debug, Clone, PartialEq)]
