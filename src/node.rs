@@ -342,7 +342,7 @@ impl Node {
         )
     }
 
-    pub(crate) fn new_nil(loc: Loc) -> Self {
+    pub fn new_nil(loc: Loc) -> Self {
         Node::new(NodeKind::Nil, loc)
     }
 
