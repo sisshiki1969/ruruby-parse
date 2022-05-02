@@ -62,7 +62,7 @@ pub(crate) enum TokenKind {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, IntoEnumIterator)]
-pub enum Reserved {
+pub(crate) enum Reserved {
     BEGIN,
     END,
     Alias,
@@ -97,7 +97,13 @@ pub enum Reserved {
 
 impl Debug for Reserved {
     fn fmt(&self, f: &mut Formatter) -> Result {
-        let s = match self {
+        write!(f, "{}", self.to_str())
+    }
+}
+
+impl Reserved {
+    pub(crate) fn to_str(&self) -> &str {
+        match self {
             Reserved::BEGIN => "BEGIN",
             Reserved::END => "END",
             Reserved::Alias => "alias",
@@ -128,8 +134,7 @@ impl Debug for Reserved {
             Reserved::When => "when",
             Reserved::While => "while",
             Reserved::Yield => "yield",
-        };
-        write!(f, "{}", s)
+        }
     }
 }
 
@@ -284,13 +289,13 @@ impl Token {
         )
     }
 
-    pub(crate) fn can_be_symbol(&self) -> Option<String> {
+    pub(crate) fn can_be_symbol(&self) -> Option<&str> {
         let id = match &self.kind {
-            TokenKind::Ident(ident) => ident.to_string(),
-            TokenKind::Const(ident) => ident.to_string(),
-            TokenKind::InstanceVar(ident) => ident.to_string(),
-            TokenKind::StringLit(ident) => ident.to_string(),
-            TokenKind::Reserved(reserved) => get_string_from_reserved(reserved),
+            TokenKind::Ident(ident) => ident,
+            TokenKind::Const(ident) => ident,
+            TokenKind::InstanceVar(ident) => ident,
+            TokenKind::StringLit(ident) => ident,
+            TokenKind::Reserved(reserved) => reserved.to_str(),
             _ => return None,
         };
         Some(id)

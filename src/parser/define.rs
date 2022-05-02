@@ -30,10 +30,7 @@ impl<'a> Parser<'a> {
                     self.read_method_name(true)?.0,
                 )
             }
-            TokenKind::Reserved(r) => {
-                let s = get_string_from_reserved(r);
-                (None, self.read_method_ext(&s)?)
-            }
+            TokenKind::Reserved(r) => (None, self.read_method_ext(r.to_str())?),
             TokenKind::Ident(s) => {
                 if s.as_str() == "self" {
                     self.consume_punct_no_term(Punct::Dot)?;

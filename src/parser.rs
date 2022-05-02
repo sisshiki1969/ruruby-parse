@@ -30,7 +30,7 @@ impl DummyFrame {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Parser<'a> {
     lexer: Lexer<'a>,
     path: PathBuf,
