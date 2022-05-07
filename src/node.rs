@@ -101,8 +101,13 @@ pub enum NodeKind {
         body: Box<Node>,
         lvar: LvarCollector,
     },
-    Send {
+    MethodCall {
         receiver: Box<Node>,
+        method: IdentId,
+        arglist: ArgList,
+        safe_nav: bool,
+    },
+    FuncCall {
         method: IdentId,
         arglist: ArgList,
         safe_nav: bool,
@@ -578,7 +583,7 @@ impl Node {
         )
     }
 
-    pub(crate) fn new_send(
+    pub(crate) fn new_mcall(
         receiver: Node,
         method: IdentId,
         arglist: ArgList,
@@ -586,7 +591,7 @@ impl Node {
         loc: Loc,
     ) -> Self {
         Node::new(
-            NodeKind::Send {
+            NodeKind::MethodCall {
                 receiver: Box::new(receiver),
                 method,
                 arglist,
@@ -596,7 +601,7 @@ impl Node {
         )
     }
 
-    pub(crate) fn new_send_noarg(
+    pub(crate) fn new_mcall_noarg(
         receiver: Node,
         method: IdentId,
         safe_nav: bool,
@@ -604,8 +609,31 @@ impl Node {
     ) -> Self {
         let arglist = ArgList::default();
         Node::new(
-            NodeKind::Send {
+            NodeKind::MethodCall {
                 receiver: Box::new(receiver),
+                method,
+                arglist,
+                safe_nav,
+            },
+            loc,
+        )
+    }
+
+    pub(crate) fn new_fcall(method: IdentId, arglist: ArgList, safe_nav: bool, loc: Loc) -> Self {
+        Node::new(
+            NodeKind::FuncCall {
+                method,
+                arglist,
+                safe_nav,
+            },
+            loc,
+        )
+    }
+
+    pub(crate) fn new_fcall_noarg(method: IdentId, safe_nav: bool, loc: Loc) -> Self {
+        let arglist = ArgList::default();
+        Node::new(
+            NodeKind::FuncCall {
                 method,
                 arglist,
                 safe_nav,

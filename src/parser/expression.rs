@@ -584,7 +584,7 @@ impl<'a> Parser<'a> {
         if self.consume_punct_no_term(Punct::LParen)? {
             let arglist = self.parse_arglist_block(Punct::RParen)?;
             //let loc = receiver.loc().merge(self.loc());
-            let node = Node::new_send(receiver, self.get_id("call"), arglist, false, loc);
+            let node = Node::new_mcall(receiver, self.get_id("call"), arglist, false, loc);
             return Ok(node);
         };
         let (id, loc) = self.read_method_name(false)?;
@@ -592,7 +592,7 @@ impl<'a> Parser<'a> {
             self.parse_arglist_block(Punct::RParen)?
         } else {
             if self.is_command() {
-                return Ok(Node::new_send(
+                return Ok(Node::new_mcall(
                     receiver,
                     id,
                     self.parse_arglist_block(None)?,
@@ -607,10 +607,10 @@ impl<'a> Parser<'a> {
         };
 
         let node = match receiver.kind {
-            NodeKind::Ident(id) => Node::new_send_noarg(Node::new_self(loc), id, false, loc),
+            NodeKind::Ident(id) => Node::new_fcall_noarg(id, false, loc),
             _ => receiver,
         };
-        Ok(Node::new_send(node, id, arglist, safe_nav, loc))
+        Ok(Node::new_mcall(node, id, arglist, safe_nav, loc))
     }
 
     pub(super) fn parse_primary(&mut self, suppress_unparen_call: bool) -> Result<Node, LexerErr> {
@@ -952,13 +952,7 @@ impl<'a> Parser<'a> {
         // FNAME ARGS
         // FNAME ARGS DO-BLOCK
         let send_args = self.parse_arglist_block(None)?;
-        Ok(Node::new_send(
-            Node::new_self(loc),
-            operation,
-            send_args,
-            false,
-            loc,
-        ))
+        Ok(Node::new_fcall(operation, send_args, false, loc))
     }
 
     fn parse_function_args(&mut self, node: Node) -> Result<Node, LexerErr> {
@@ -967,8 +961,7 @@ impl<'a> Parser<'a> {
             // PRIMARY-METHOD : FNAME ( ARGS ) BLOCK?
             let send_args = self.parse_arglist_block(Punct::RParen)?;
 
-            Ok(Node::new_send(
-                Node::new_self(loc),
+            Ok(Node::new_fcall(
                 node.as_method_name().unwrap(),
                 send_args,
                 false,
@@ -976,8 +969,7 @@ impl<'a> Parser<'a> {
             ))
         } else if let Some(block) = self.parse_block()? {
             // PRIMARY-METHOD : FNAME BLOCK
-            Ok(Node::new_send(
-                Node::new_self(loc),
+            Ok(Node::new_fcall(
                 node.as_method_name().unwrap(),
                 ArgList::with_block(block),
                 false,

@@ -215,7 +215,7 @@ impl<'a> Parser<'a> {
                 let node = self.parse_interporated_string_literal(s, *term, *level)?;
                 let method = self.get_id("to_sym");
                 let loc = symbol_loc.merge(node.loc());
-                return Ok(Node::new_send_noarg(node, method, false, loc));
+                return Ok(Node::new_mcall_noarg(node, method, false, loc));
             }
             TokenKind::StringLit(ident) => self.get_id(ident),
             _ => return Err(error_unexpected(symbol_loc, "Expect identifier or string.")),
