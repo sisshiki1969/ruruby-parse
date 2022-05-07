@@ -13,7 +13,18 @@ pub(crate) enum ParseMode {
     Command,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+use enum_iterator::IntoEnumIterator;
+
+fn check_reserved(maybe_reserved: &str) -> Option<Reserved> {
+    for reserved in Reserved::into_enum_iter() {
+        if maybe_reserved == reserved.to_str() {
+            return Some(reserved);
+        }
+    }
+    None
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct Lexer<'a> {
     token_start_pos: usize,
     pos: usize,

@@ -67,6 +67,7 @@ impl IdentId {
     pub const MAP: IdentId = id!(28);
     pub const _NAME: IdentId = id!(29);
     pub const _DOT3: IdentId = id!(30);
+    pub const _MAIN: IdentId = id!(31);
 }
 
 impl IdentId {
@@ -118,6 +119,7 @@ impl IdentifierTable {
         table.set_ident_id("map", IdentId::MAP);
         table.set_ident_id("/name", IdentId::_NAME);
         table.set_ident_id("...", IdentId::_DOT3);
+        table.set_ident_id("/main", IdentId::_MAIN);
         table
     }
 

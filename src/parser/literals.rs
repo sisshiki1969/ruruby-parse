@@ -133,19 +133,20 @@ impl<'a> Parser<'a> {
                 let mut parser = self.new_with_range(start, end);
                 let tok = parser.lexer.read_string_literal_double(None, None, 0)?;
                 let loc = tok.loc();
-                match tok.kind {
+                let node = match tok.kind {
                     TokenKind::StringLit(s) => Node::new_string(s, loc),
                     TokenKind::OpenString(s, term, level) => {
-                        return parser.parse_interporated_string_literal(&s, term, level);
+                        parser.parse_interporated_string_literal(&s, term, level)?
                     }
                     _ => unreachable!(),
-                }
+                };
+                node
             }
             ParseMode::Command => {
                 let mut parser = self.new_with_range(start, end);
                 let tok = parser.lexer.read_command_literal(None, None, 0)?;
                 let loc = tok.loc();
-                match tok.kind {
+                let node = match tok.kind {
                     TokenKind::CommandLit(s) => {
                         let content = Node::new_string(s, loc);
                         Node::new_command(content)
@@ -155,7 +156,8 @@ impl<'a> Parser<'a> {
                         Node::new_command(content)
                     }
                     _ => unreachable!(),
-                }
+                };
+                node
             }
         };
         Ok(node)
@@ -175,7 +177,7 @@ impl<'a> Parser<'a> {
                     let save = self.save_state();
                     self.get().unwrap();
                     if self.consume_punct(Punct::Colon)? {
-                        let id = self.get_id_from_string(id);
+                        let id = self.get_id(id);
                         symbol_flag = true;
                         Node::new_symbol(id, ident_loc)
                     } else {
