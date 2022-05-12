@@ -8,6 +8,12 @@ use std::num::NonZeroU32;
 #[repr(transparent)]
 pub struct IdentId(NonZeroU32);
 
+impl std::default::Default for IdentId {
+    fn default() -> Self {
+        Self(unsafe { NonZeroU32::new_unchecked(1u32) })
+    }
+}
+
 impl From<IdentId> for usize {
     #[inline(always)]
     fn from(id: IdentId) -> usize {
