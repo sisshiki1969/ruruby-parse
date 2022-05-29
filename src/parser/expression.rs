@@ -714,8 +714,11 @@ impl<'a> Parser<'a> {
                     _ => unreachable!(),
                 },
                 Punct::LParen => {
+                    let old = self.suppress_mul_assign;
+                    self.suppress_mul_assign = false;
                     let node = self.parse_comp_stmt()?;
                     self.expect_punct(Punct::RParen)?;
+                    self.suppress_mul_assign = old;
                     Ok(node)
                 }
                 Punct::LBracket => {

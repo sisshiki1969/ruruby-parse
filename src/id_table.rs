@@ -125,7 +125,6 @@ impl IdentifierTable {
         table.set_ident_id("map", IdentId::MAP);
         table.set_ident_id("/name", IdentId::_NAME);
         table.set_ident_id("...", IdentId::_DOT3);
-        table.set_ident_id("/main", IdentId::_MAIN);
         table
     }
 
