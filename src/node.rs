@@ -414,6 +414,13 @@ impl Node {
     }
 
     pub(crate) fn new_interporated_string(nodes: Vec<Node>, loc: Loc) -> Self {
+        let nodes = nodes
+            .into_iter()
+            .filter(|node| match &node.kind {
+                NodeKind::String(s) => !s.is_empty(),
+                _ => true,
+            })
+            .collect();
         Node::new(NodeKind::InterporatedString(nodes), loc)
     }
 
