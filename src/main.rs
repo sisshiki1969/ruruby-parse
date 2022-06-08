@@ -3,6 +3,7 @@ extern crate clap;
 extern crate ruruby_parse;
 
 use clap::*;
+use ruruby_parse::IdentifierTable;
 use std::fs::*;
 use std::io::Read;
 use std::path::Path;
@@ -62,7 +63,12 @@ fn main() {
 }
 
 fn parse_and_output(program: String) {
-    match ruruby_parse::Parser::parse_program(program, Path::new(""), "main") {
+    match ruruby_parse::Parser::parse_program(
+        program,
+        Path::new(""),
+        "main",
+        IdentifierTable::new(),
+    ) {
         Ok(res) => println!("{:#?}", res.node),
         Err(err) => panic!("{:?}\n{}", err.kind, err.source_info.get_location(&err.loc)),
     };

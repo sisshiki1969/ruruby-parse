@@ -86,14 +86,14 @@ impl IdentId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct IdentifierTable {
     rev_table: FxHashMap<String, IdentId>,
     table: Vec<String>,
 }
 
 impl IdentifierTable {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let mut table = IdentifierTable {
             rev_table: FxHashMap::default(),
             table: vec![String::new(); 40],

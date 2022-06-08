@@ -130,35 +130,49 @@ impl<'a> Parser<'a> {
                 Node::new_string(self.lexer.code[start..end].to_string(), Loc(start, end))
             }
             ParseMode::Double => {
-                let mut parser = self.new_with_range(start, end);
-                let tok = parser.lexer.read_string_literal_double(None, None, 0)?;
-                let loc = tok.loc();
-                let node = match tok.kind {
-                    TokenKind::StringLit(s) => Node::new_string(s, loc),
-                    TokenKind::OpenString(s, term, level) => {
-                        parser.parse_interporated_string_literal(&s, term, level)?
-                    }
-                    _ => unreachable!(),
-                };
-                node
+                let id_store = std::mem::take(&mut self.id_store);
+                let mut parser = self.new_with_range(start, end, id_store);
+                let res = parser.here_double();
+                self.id_store = std::mem::take(&mut parser.id_store);
+                res?
             }
             ParseMode::Command => {
-                let mut parser = self.new_with_range(start, end);
-                let tok = parser.lexer.read_command_literal(None, None, 0)?;
-                let loc = tok.loc();
-                let node = match tok.kind {
-                    TokenKind::CommandLit(s) => {
-                        let content = Node::new_string(s, loc);
-                        Node::new_command(content)
-                    }
-                    TokenKind::OpenString(s, term, level) => {
-                        let content = parser.parse_interporated_string_literal(&s, term, level)?;
-                        Node::new_command(content)
-                    }
-                    _ => unreachable!(),
-                };
-                node
+                let id_store = std::mem::take(&mut self.id_store);
+                let mut parser = self.new_with_range(start, end, id_store);
+                let res = parser.here_command();
+                self.id_store = std::mem::take(&mut parser.id_store);
+                res?
             }
+        };
+        Ok(node)
+    }
+
+    fn here_double(&mut self) -> Result<Node, LexerErr> {
+        let tok = self.lexer.read_string_literal_double(None, None, 0)?;
+        let loc = tok.loc();
+        let node = match tok.kind {
+            TokenKind::StringLit(s) => Node::new_string(s, loc),
+            TokenKind::OpenString(s, term, level) => {
+                self.parse_interporated_string_literal(&s, term, level)?
+            }
+            _ => unreachable!(),
+        };
+        Ok(node)
+    }
+
+    fn here_command(&mut self) -> Result<Node, LexerErr> {
+        let tok = self.lexer.read_command_literal(None, None, 0)?;
+        let loc = tok.loc();
+        let node = match tok.kind {
+            TokenKind::CommandLit(s) => {
+                let content = Node::new_string(s, loc);
+                Node::new_command(content)
+            }
+            TokenKind::OpenString(s, term, level) => {
+                let content = self.parse_interporated_string_literal(&s, term, level)?;
+                Node::new_command(content)
+            }
+            _ => unreachable!(),
         };
         Ok(node)
     }
@@ -316,14 +330,14 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn new_with_range(&self, pos: usize, end: usize) -> Self {
+    fn new_with_range(&self, pos: usize, end: usize, id_store: IdentifierTable) -> Self {
         let lexer = self.lexer.new_with_range(pos, end);
         Parser {
             lexer,
             path: self.path.clone(),
             prev_loc: Loc(0, 0),
             context_stack: vec![],
-            id_store: IdentifierTable::new(),
+            id_store,
             extern_context: None,
             suppress_acc_assign: false,
             suppress_mul_assign: false,
