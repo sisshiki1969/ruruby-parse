@@ -74,6 +74,10 @@ impl IdentId {
     pub const _NAME: IdentId = id!(29);
     pub const _DOT3: IdentId = id!(30);
     pub const _MAIN: IdentId = id!(31);
+    pub const _BOR: IdentId = id!(32);
+    pub const _BAND: IdentId = id!(33);
+    pub const _BXOR: IdentId = id!(34);
+    pub const _UMINUS: IdentId = id!(35);
 }
 
 impl IdentId {
@@ -125,6 +129,11 @@ impl IdentifierTable {
         table.set_ident_id("map", IdentId::MAP);
         table.set_ident_id("/name", IdentId::_NAME);
         table.set_ident_id("...", IdentId::_DOT3);
+        table.set_ident_id("/main", IdentId::_MAIN);
+        table.set_ident_id("|", IdentId::_BOR);
+        table.set_ident_id("&", IdentId::_BAND);
+        table.set_ident_id("^", IdentId::_BXOR);
+        table.set_ident_id("-@", IdentId::_UMINUS);
         table
     }
 
