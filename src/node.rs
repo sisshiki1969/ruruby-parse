@@ -15,7 +15,7 @@ pub enum NodeKind {
     String(String),
     InterporatedString(Vec<Node>),
     Command(Box<Node>),
-    Symbol(IdentId),
+    Symbol(String),
     Range {
         start: Box<Node>,
         end: Box<Node>,
@@ -80,10 +80,10 @@ pub enum NodeKind {
     Next(Box<Node>),
     Return(Box<Node>),
     Yield(ArgList),
-    MethodDef(IdentId, Vec<FormalParam>, Box<Node>, LvarCollector), // id, params, body
+    MethodDef(String, Vec<FormalParam>, Box<Node>, LvarCollector), // id, params, body
     SingletonMethodDef(
         Box<Node>,
-        IdentId,
+        String,
         Vec<FormalParam>,
         Box<Node>,
         LvarCollector,
@@ -103,7 +103,7 @@ pub enum NodeKind {
     },
     MethodCall {
         receiver: Box<Node>,
-        method: IdentId,
+        method: String,
         arglist: ArgList,
         safe_nav: bool,
     },
@@ -481,8 +481,8 @@ impl Node {
         Node::new(NodeKind::Ident(id), loc)
     }
 
-    pub(crate) fn new_symbol(id: IdentId, loc: Loc) -> Self {
-        Node::new(NodeKind::Symbol(id), loc)
+    pub(crate) fn new_symbol(symbol: String, loc: Loc) -> Self {
+        Node::new(NodeKind::Symbol(symbol), loc)
     }
 
     pub(crate) fn new_instance_var(id: IdentId, loc: Loc) -> Self {
@@ -527,19 +527,19 @@ impl Node {
     }
 
     pub(crate) fn new_method_decl(
-        id: IdentId,
+        name: String,
         params: Vec<FormalParam>,
         body: Node,
         lvar: LvarCollector,
         loc: Loc,
     ) -> Self {
         let loc = body.loc().merge(loc);
-        Node::new(NodeKind::MethodDef(id, params, Box::new(body), lvar), loc)
+        Node::new(NodeKind::MethodDef(name, params, Box::new(body), lvar), loc)
     }
 
     pub(crate) fn new_singleton_method_decl(
         singleton: Node,
-        id: IdentId,
+        name: String,
         params: Vec<FormalParam>,
         body: Node,
         lvar: LvarCollector,
@@ -547,7 +547,7 @@ impl Node {
     ) -> Self {
         let loc = body.loc().merge(loc);
         Node::new(
-            NodeKind::SingletonMethodDef(Box::new(singleton), id, params, Box::new(body), lvar),
+            NodeKind::SingletonMethodDef(Box::new(singleton), name, params, Box::new(body), lvar),
             loc,
         )
     }
@@ -592,7 +592,7 @@ impl Node {
 
     pub(crate) fn new_mcall(
         receiver: Node,
-        method: IdentId,
+        method: String,
         arglist: ArgList,
         safe_nav: bool,
         loc: Loc,
@@ -610,7 +610,7 @@ impl Node {
 
     pub(crate) fn new_mcall_noarg(
         receiver: Node,
-        method: IdentId,
+        method: String,
         safe_nav: bool,
         loc: Loc,
     ) -> Self {

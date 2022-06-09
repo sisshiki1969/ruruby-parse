@@ -584,7 +584,7 @@ impl<'a> Parser<'a> {
         if self.consume_punct_no_term(Punct::LParen)? {
             let arglist = self.parse_arglist_block(Punct::RParen)?;
             //let loc = receiver.loc().merge(self.loc());
-            let node = Node::new_mcall(receiver, self.get_id("call"), arglist, false, loc);
+            let node = Node::new_mcall(receiver, "call".to_string(), arglist, false, loc);
             return Ok(node);
         };
         let (id, loc) = self.read_method_name(false)?;

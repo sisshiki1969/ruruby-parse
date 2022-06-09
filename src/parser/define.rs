@@ -64,7 +64,8 @@ impl<'a> Parser<'a> {
             _ => return Err(error_unexpected(loc, "Invalid method name.")),
         };
 
-        self.context_stack.push(ParseContext::new_method(name));
+        self.context_stack
+            .push(ParseContext::new_method(name.clone()));
         let args = self.parse_def_params()?;
         let body = self.parse_begin()?;
         let lvar = self.context_stack.pop().unwrap().lvar;
@@ -139,7 +140,7 @@ impl<'a> Parser<'a> {
         } else if let TokenKind::GlobalVar(_) = self.peek_no_term()?.kind {
             let tok = self.get()?;
             match &tok.kind {
-                TokenKind::GlobalVar(name) => Ok(Node::new_symbol(self.get_id(name), tok.loc)),
+                TokenKind::GlobalVar(name) => Ok(Node::new_symbol(name.to_owned(), tok.loc)),
                 _ => unreachable!(),
             }
         } else {

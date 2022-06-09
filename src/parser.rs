@@ -391,16 +391,14 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn read_method_name(&mut self, allow_assign_like: bool) -> Result<(IdentId, Loc), LexerErr> {
+    fn read_method_name(&mut self, allow_assign_like: bool) -> Result<(String, Loc), LexerErr> {
         self.lexer
             .read_method_name(allow_assign_like)
-            .map(|(s, loc)| (self.get_id_from_string(s), loc))
+            .map(|(s, loc)| (s, loc))
     }
 
-    fn read_method_ext(&mut self, s: &str) -> Result<IdentId, LexerErr> {
-        self.lexer
-            .read_method_ext(s)
-            .map(|s| self.get_id_from_string(s))
+    fn read_method_ext(&mut self, s: &str) -> Result<String, LexerErr> {
+        self.lexer.read_method_ext(s)
     }
 }
 
@@ -446,36 +444,36 @@ impl<'a> Parser<'a> {
 
     /// Parse operator which can be defined as a method.
     /// Return IdentId of the operator.
-    fn parse_op_definable(&mut self, punct: &Punct) -> Result<IdentId, LexerErr> {
+    fn parse_op_definable(&mut self, punct: &Punct) -> Result<String, LexerErr> {
         // TODO: must support
         // ^
         // **   ~   +@  -@   ` !  !~
         match punct {
-            Punct::Plus => Ok(IdentId::_ADD),
-            Punct::Minus => Ok(IdentId::_SUB),
-            Punct::Mul => Ok(IdentId::_MUL),
-            Punct::Div => Ok(IdentId::_DIV),
-            Punct::Rem => Ok(IdentId::_REM),
-            Punct::Shl => Ok(IdentId::_SHL),
-            Punct::Shr => Ok(IdentId::_SHR),
-            Punct::BitAnd => Ok(self.get_id("&")),
-            Punct::BitOr => Ok(self.get_id("|")),
+            Punct::Plus => Ok("+".to_string()),
+            Punct::Minus => Ok("-".to_string()),
+            Punct::Mul => Ok("*".to_string()),
+            Punct::Div => Ok("/".to_string()),
+            Punct::Rem => Ok("%".to_string()),
+            Punct::Shl => Ok("<<".to_string()),
+            Punct::Shr => Ok(">>".to_string()),
+            Punct::BitAnd => Ok("&".to_string()),
+            Punct::BitOr => Ok("|".to_string()),
 
-            Punct::Cmp => Ok(IdentId::_CMP),
-            Punct::Eq => Ok(IdentId::_EQ),
-            Punct::Ne => Ok(IdentId::_NEQ),
-            Punct::Lt => Ok(IdentId::_LT),
-            Punct::Le => Ok(IdentId::_LE),
-            Punct::Gt => Ok(IdentId::_GT),
-            Punct::Ge => Ok(IdentId::_GE),
-            Punct::TEq => Ok(IdentId::_TEQ),
-            Punct::Match => Ok(self.get_id("=~")),
+            Punct::Cmp => Ok("<=>".to_string()),
+            Punct::Eq => Ok("==".to_string()),
+            Punct::Ne => Ok("!=".to_string()),
+            Punct::Lt => Ok("<".to_string()),
+            Punct::Le => Ok("<=".to_string()),
+            Punct::Gt => Ok(">".to_string()),
+            Punct::Ge => Ok(">=".to_string()),
+            Punct::TEq => Ok("===".to_string()),
+            Punct::Match => Ok("=~".to_string()),
             Punct::LBracket => {
                 if self.consume_punct_no_term(Punct::RBracket)? {
                     if self.consume_punct_no_term(Punct::Assign)? {
-                        Ok(IdentId::_INDEX_ASSIGN)
+                        Ok("[]=".to_string())
                     } else {
-                        Ok(IdentId::_INDEX)
+                        Ok("[]".to_string())
                     }
                 } else {
                     let loc = self.loc();
@@ -721,7 +719,7 @@ struct ParseContext {
 }
 
 impl ParseContext {
-    fn new_method(_name: IdentId) -> Self {
+    fn new_method(_name: String) -> Self {
         ParseContext {
             lvar: LvarCollector::new(),
             kind: ParseContextKind::Method,

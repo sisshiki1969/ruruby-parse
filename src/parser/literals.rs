@@ -99,7 +99,7 @@ impl<'a> Parser<'a> {
                     let ary = content
                         .split(|c| c == ' ' || c == '\n')
                         .filter(|x| x != &"")
-                        .map(|x| Node::new_symbol(self.get_id(x), loc))
+                        .map(|x| Node::new_symbol(x.to_owned(), loc))
                         .collect();
                     Ok(Node::new_array(ary, tok.loc))
                 }
@@ -191,9 +191,8 @@ impl<'a> Parser<'a> {
                     let save = self.save_state();
                     self.get().unwrap();
                     if self.consume_punct(Punct::Colon)? {
-                        let id = self.get_id(id);
                         symbol_flag = true;
-                        Node::new_symbol(id, ident_loc)
+                        Node::new_symbol(id.to_owned(), ident_loc)
                     } else {
                         self.restore_state(save);
                         self.parse_arg()?
@@ -221,7 +220,6 @@ impl<'a> Parser<'a> {
         }
         // Symbol literal
         if let Some((id, ident_loc)) = self.lexer.read_symbol_literal()? {
-            let id = self.get_id_from_string(id);
             return Ok(Node::new_symbol(id, loc.merge(ident_loc)));
         };
         let token = self.get()?;
@@ -229,11 +227,11 @@ impl<'a> Parser<'a> {
         let id = match &token.kind {
             TokenKind::OpenString(s, term, level) => {
                 let node = self.parse_interporated_string_literal(s, *term, *level)?;
-                let method = self.get_id("to_sym");
+                let method = "to_sym".to_string();
                 let loc = symbol_loc.merge(node.loc());
                 return Ok(Node::new_mcall_noarg(node, method, false, loc));
             }
-            TokenKind::StringLit(ident) => self.get_id(ident),
+            TokenKind::StringLit(ident) => ident.to_owned(),
             _ => return Err(error_unexpected(symbol_loc, "Expect identifier or string.")),
         };
         Ok(Node::new_symbol(id, loc.merge(self.prev_loc())))
