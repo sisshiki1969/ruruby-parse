@@ -1,5 +1,3 @@
-use crate::*;
-
 ///
 /// Wrapper of ID for local variables.
 ///
@@ -52,7 +50,7 @@ pub struct LvarCollector {
 }
 
 impl LvarCollector {
-    pub fn from(id: IdentId) -> Self {
+    pub fn from(id: String) -> Self {
         let mut table = LvarTable::new();
         table.push(id);
         Self {
@@ -79,8 +77,8 @@ impl LvarCollector {
 
     /// Check whether `val` exists in `LvarCollector` or not, and return `LvarId` if exists.
     /// If not, add new variable `val` to the `LvarCollector`.
-    pub fn insert(&mut self, val: IdentId) -> LvarId {
-        match self.table.get_lvarid(val) {
+    pub fn insert(&mut self, val: String) -> LvarId {
+        match self.table.get_lvarid(&val) {
             Some(id) => id,
             None => {
                 self.table.push(val);
@@ -91,8 +89,8 @@ impl LvarCollector {
 
     /// Add a new variable `val` to the `LvarCollector`.
     /// Return None if `val` already exists.
-    pub fn insert_new(&mut self, val: IdentId) -> Option<LvarId> {
-        match self.table.get_lvarid(val) {
+    pub fn insert_new(&mut self, val: String) -> Option<LvarId> {
+        match self.table.get_lvarid(&val) {
             Some(_) => None,
             None => {
                 self.table.push(val);
@@ -103,7 +101,7 @@ impl LvarCollector {
 
     /// Add a new block parameter `val` to the `LvarCollector`.
     /// Return None if `val` already exists.
-    pub fn insert_block_param(&mut self, val: IdentId) -> Option<LvarId> {
+    pub fn insert_block_param(&mut self, val: String) -> Option<LvarId> {
         let lvar = self.insert_new(val)?;
         self.block = Some(lvar);
         Some(lvar)
@@ -111,7 +109,7 @@ impl LvarCollector {
 
     /// Add a new keyword parameter `val` to the `LvarCollector`.
     /// Return None if `val` already exists.
-    pub fn insert_kwrest_param(&mut self, val: IdentId) -> Option<LvarId> {
+    pub fn insert_kwrest_param(&mut self, val: String) -> Option<LvarId> {
         let lvar = self.insert_new(val)?;
         self.kwrest = Some(lvar);
         Some(lvar)
@@ -120,12 +118,12 @@ impl LvarCollector {
     /// Add a delegate parameter `val` to the `LvarCollector`.
     /// Return None if `val` already exists.
     pub fn insert_delegate_param(&mut self) -> Option<LvarId> {
-        let lvar = self.insert_new(IdentId::_DOT3)?;
+        let lvar = self.insert_new("...".to_string())?;
         self.delegate_param = Some(lvar);
         Some(lvar)
     }
 
-    fn get_name_id(&self, id: LvarId) -> Option<IdentId> {
+    fn get_name_id(&self, id: LvarId) -> Option<String> {
         self.table.get(id.into())
     }
 
@@ -153,7 +151,7 @@ impl LvarCollector {
     }
 
     #[inline(always)]
-    pub fn table(&self) -> &Vec<IdentId> {
+    pub fn table(&self) -> &Vec<String> {
         &self.table.0
     }
 
@@ -164,22 +162,22 @@ impl LvarCollector {
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
-pub struct LvarTable(Vec<IdentId>);
+pub struct LvarTable(Vec<String>);
 
 impl LvarTable {
     pub fn new() -> Self {
         Self(vec![])
     }
 
-    pub fn get_lvarid(&self, id: IdentId) -> Option<LvarId> {
-        self.0.iter().position(|i| *i == id).map(LvarId::from)
+    pub fn get_lvarid(&self, name: &str) -> Option<LvarId> {
+        self.0.iter().position(|i| i == name).map(LvarId::from)
     }
 
-    fn push(&mut self, id: IdentId) {
-        self.0.push(id)
+    fn push(&mut self, name: String) {
+        self.0.push(name)
     }
 
-    fn get(&self, i: usize) -> Option<IdentId> {
+    fn get(&self, i: usize) -> Option<String> {
         self.0.get(i).cloned()
     }
 }

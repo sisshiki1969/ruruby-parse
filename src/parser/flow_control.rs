@@ -74,9 +74,9 @@ impl<'a> Parser<'a> {
         //let loc = self.prev_loc();
         let mut vars = vec![];
         loop {
-            let var_id = self.expect_ident()?;
-            self.add_local_var_if_new(var_id);
-            vars.push(var_id);
+            let name = self.expect_ident()?;
+            self.add_local_var_if_new(name.clone());
+            vars.push(name);
             if !self.consume_punct(Punct::Comma)? {
                 break;
             }
@@ -90,8 +90,8 @@ impl<'a> Parser<'a> {
         let body = self.parse_comp_stmt()?;
         let mut formal_params = vec![];
         for (i, _var) in vars.iter().enumerate() {
-            let dummy_var = self.get_id_from_string(format!("_{}", i));
-            self.new_param(dummy_var, loc)?;
+            let dummy_var = format!("_{}", i);
+            self.new_param(dummy_var.clone(), loc)?;
             formal_params.push(FormalParam::req_param(dummy_var, loc));
         }
         let lvar = self.context_stack.pop().unwrap().lvar;

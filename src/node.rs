@@ -26,17 +26,17 @@ pub enum NodeKind {
     Hash(Vec<(Node, Node)>, bool), // Vec<KEY, VALUE>, is_constant_expr
     RegExp(Vec<Node>, bool),       // Vec<STRING>, is_constant_expr
 
-    LocalVar(IdentId),
-    Ident(IdentId),
+    LocalVar(String),
+    Ident(String),
     InstanceVar(IdentId),
     GlobalVar(IdentId),
     SpecialVar(usize),
     ClassVar(IdentId),
     Const {
         toplevel: bool,
-        id: IdentId,
+        name: String,
     },
-    Scope(Box<Node>, IdentId),
+    Scope(Box<Node>, String),
 
     BinOp(BinOp, Box<Node>, Box<Node>),
     UnOp(UnOp, Box<Node>),
@@ -55,7 +55,7 @@ pub enum NodeKind {
         else_: Box<Node>,
     },
     For {
-        param: Vec<IdentId>,
+        param: Vec<String>,
         iter: Box<Node>,
         body: BlockInfo,
     },
@@ -90,7 +90,7 @@ pub enum NodeKind {
     ), // singleton_class, id, params, body
     ClassDef {
         base: Box<Node>,
-        id: IdentId,
+        name: String,
         superclass: Box<Node>,
         body: Box<Node>,
         lvar: LvarCollector,
@@ -108,7 +108,7 @@ pub enum NodeKind {
         safe_nav: bool,
     },
     FuncCall {
-        method: IdentId,
+        method: String,
         arglist: ArgList,
         safe_nav: bool,
     },
@@ -138,36 +138,36 @@ impl BlockInfo {
 pub type FormalParam = Annot<ParamKind>;
 
 impl FormalParam {
-    pub(crate) fn req_param(id: IdentId, loc: Loc) -> Self {
-        FormalParam::new(ParamKind::Param(id), loc)
+    pub(crate) fn req_param(name: String, loc: Loc) -> Self {
+        FormalParam::new(ParamKind::Param(name), loc)
     }
 
-    pub(crate) fn optional(id: IdentId, default: Node, loc: Loc) -> Self {
-        FormalParam::new(ParamKind::Optional(id, Box::new(default)), loc)
+    pub(crate) fn optional(name: String, default: Node, loc: Loc) -> Self {
+        FormalParam::new(ParamKind::Optional(name, Box::new(default)), loc)
     }
 
-    pub(crate) fn rest(id: IdentId, loc: Loc) -> Self {
-        FormalParam::new(ParamKind::Rest(id), loc)
+    pub(crate) fn rest(name: String, loc: Loc) -> Self {
+        FormalParam::new(ParamKind::Rest(name), loc)
     }
 
     pub(crate) fn rest_discard(loc: Loc) -> Self {
         FormalParam::new(ParamKind::RestDiscard, loc)
     }
 
-    pub(crate) fn post(id: IdentId, loc: Loc) -> Self {
-        FormalParam::new(ParamKind::Post(id), loc)
+    pub(crate) fn post(name: String, loc: Loc) -> Self {
+        FormalParam::new(ParamKind::Post(name), loc)
     }
 
-    pub(crate) fn keyword(id: IdentId, default: Option<Node>, loc: Loc) -> Self {
-        FormalParam::new(ParamKind::Keyword(id, default.map(Box::new)), loc)
+    pub(crate) fn keyword(name: String, default: Option<Node>, loc: Loc) -> Self {
+        FormalParam::new(ParamKind::Keyword(name, default.map(Box::new)), loc)
     }
 
-    pub(crate) fn kwrest(id: IdentId, loc: Loc) -> Self {
-        FormalParam::new(ParamKind::KWRest(id), loc)
+    pub(crate) fn kwrest(name: String, loc: Loc) -> Self {
+        FormalParam::new(ParamKind::KWRest(name), loc)
     }
 
-    pub(crate) fn block(id: IdentId, loc: Loc) -> Self {
-        FormalParam::new(ParamKind::Block(id), loc)
+    pub(crate) fn block(name: String, loc: Loc) -> Self {
+        FormalParam::new(ParamKind::Block(name), loc)
     }
 
     pub(crate) fn delegeate(loc: Loc) -> Self {
@@ -177,14 +177,14 @@ impl FormalParam {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ParamKind {
-    Param(IdentId),
-    Post(IdentId),
-    Optional(IdentId, Box<Node>), // name, default expr
-    Rest(IdentId),
+    Param(String),
+    Post(String),
+    Optional(String, Box<Node>), // name, default expr
+    Rest(String),
     RestDiscard,
-    Keyword(IdentId, Option<Box<Node>>), // name, default expr
-    KWRest(IdentId),
-    Block(IdentId),
+    Keyword(String, Option<Box<Node>>), // name, default expr
+    KWRest(String),
+    Block(String),
     Delegate,
 }
 
@@ -193,7 +193,7 @@ pub struct ArgList {
     /// positional args
     pub args: Vec<Node>,
     /// keyword args
-    pub kw_args: Vec<(IdentId, Node)>,
+    pub kw_args: Vec<(String, Node)>,
     /// double splat args (**{})
     pub hash_splat: Vec<Node>,
     /// block
@@ -473,12 +473,12 @@ impl Node {
         Node::new(NodeKind::Splat(Box::new(array)), loc)
     }
 
-    pub(crate) fn new_lvar(id: IdentId, loc: Loc) -> Self {
-        Node::new(NodeKind::LocalVar(id), loc)
+    pub(crate) fn new_lvar(name: String, loc: Loc) -> Self {
+        Node::new(NodeKind::LocalVar(name), loc)
     }
 
-    pub(crate) fn new_identifier(id: IdentId, loc: Loc) -> Self {
-        Node::new(NodeKind::Ident(id), loc)
+    pub(crate) fn new_identifier(name: String, loc: Loc) -> Self {
+        Node::new(NodeKind::Ident(name), loc)
     }
 
     pub(crate) fn new_symbol(symbol: String, loc: Loc) -> Self {
@@ -501,12 +501,12 @@ impl Node {
         Node::new(NodeKind::SpecialVar(id), loc)
     }
 
-    pub(crate) fn new_const(id: IdentId, toplevel: bool, loc: Loc) -> Self {
-        Node::new(NodeKind::Const { toplevel, id }, loc)
+    pub(crate) fn new_const(name: String, toplevel: bool, loc: Loc) -> Self {
+        Node::new(NodeKind::Const { toplevel, name }, loc)
     }
 
-    pub(crate) fn new_scope(parent: Node, id: IdentId, loc: Loc) -> Self {
-        Node::new(NodeKind::Scope(Box::new(parent), id), loc)
+    pub(crate) fn new_scope(parent: Node, name: String, loc: Loc) -> Self {
+        Node::new(NodeKind::Scope(Box::new(parent), name), loc)
     }
 
     pub(crate) fn new_mul_assign(mlhs: Vec<Node>, mrhs: Vec<Node>) -> Self {
@@ -554,7 +554,7 @@ impl Node {
 
     pub(crate) fn new_class_decl(
         base: Node,
-        id: IdentId,
+        name: String,
         superclass: Node,
         body: Node,
         lvar: LvarCollector,
@@ -564,7 +564,7 @@ impl Node {
         Node::new(
             NodeKind::ClassDef {
                 base: Box::new(base),
-                id,
+                name,
                 superclass: Box::new(superclass),
                 body: Box::new(body),
                 is_module,
@@ -626,7 +626,7 @@ impl Node {
         )
     }
 
-    pub(crate) fn new_fcall(method: IdentId, arglist: ArgList, safe_nav: bool, loc: Loc) -> Self {
+    pub(crate) fn new_fcall(method: String, arglist: ArgList, safe_nav: bool, loc: Loc) -> Self {
         Node::new(
             NodeKind::FuncCall {
                 method,
@@ -637,7 +637,7 @@ impl Node {
         )
     }
 
-    pub(crate) fn new_fcall_noarg(method: IdentId, safe_nav: bool, loc: Loc) -> Self {
+    pub(crate) fn new_fcall_noarg(method: String, safe_nav: bool, loc: Loc) -> Self {
         let arglist = ArgList::default();
         Node::new(
             NodeKind::FuncCall {
@@ -780,9 +780,11 @@ impl Node {
         }
     }
 
-    pub(crate) fn as_method_name(&self) -> Option<IdentId> {
-        match self.kind {
-            NodeKind::Const { id, .. } | NodeKind::Ident(id) | NodeKind::LocalVar(id) => Some(id),
+    pub(crate) fn as_method_name(&self) -> Option<String> {
+        match &self.kind {
+            NodeKind::Const { name: id, .. } | NodeKind::Ident(id) | NodeKind::LocalVar(id) => {
+                Some(id.clone())
+            }
             _ => None,
         }
     }
