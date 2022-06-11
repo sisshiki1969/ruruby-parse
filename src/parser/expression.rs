@@ -458,8 +458,9 @@ impl<'a> Parser<'a> {
                 self.get()?;
                 let rhs = self.parse_arg()?;
                 self.check_lhs(&lhs)?;
-                if let NodeKind::Ident(id) = lhs.kind {
-                    lhs = Node::new_lvar(id, lhs.loc());
+                let loc = lhs.loc();
+                if let NodeKind::Ident(name) = lhs.kind {
+                    lhs = Node::new_lvar(name, loc);
                 };
                 let node =
                     Node::new_binop(op, lhs.clone(), Node::new_mul_assign(vec![lhs], vec![rhs]));
@@ -584,7 +585,7 @@ impl<'a> Parser<'a> {
         if self.consume_punct_no_term(Punct::LParen)? {
             let arglist = self.parse_arglist_block(Punct::RParen)?;
             //let loc = receiver.loc().merge(self.loc());
-            let node = Node::new_mcall(receiver, self.get_id("call"), arglist, false, loc);
+            let node = Node::new_mcall(receiver, "call".to_string(), arglist, false, loc);
             return Ok(node);
         };
         let (id, loc) = self.read_method_name(false)?;
@@ -634,16 +635,15 @@ impl<'a> Parser<'a> {
                     _ => {}
                 };
 
-                let id = self.get_id_from_string(name);
                 if self.lexer.trailing_lparen() {
-                    let node = Node::new_identifier(id, loc);
+                    let node = Node::new_identifier(name.clone(), loc);
                     return self.parse_function_args(node);
                 };
-                if self.is_local_var(id) {
-                    Ok(Node::new_lvar(id, loc))
+                if self.is_local_var(&name) {
+                    Ok(Node::new_lvar(name, loc))
                 } else {
                     // FUNCTION or COMMAND or LHS for assignment
-                    let node = Node::new_identifier(id, loc);
+                    let node = Node::new_identifier(name.to_string(), loc);
                     if let Ok(tok) = self.peek_no_term() {
                         match tok.kind {
                             // Multiple assignment
@@ -657,7 +657,7 @@ impl<'a> Parser<'a> {
                     };
 
                     if !suppress_unparen_call && self.is_command() {
-                        Ok(self.parse_command(id, loc)?)
+                        Ok(self.parse_command(name, loc)?)
                     } else {
                         Ok(node)
                     }
@@ -677,14 +677,13 @@ impl<'a> Parser<'a> {
             }
             TokenKind::SpecialVar(id) => Ok(Node::new_special_var(id, loc)),
             TokenKind::Const(name) => {
-                let id = self.get_id_from_string(name);
                 if self.lexer.trailing_lparen() {
-                    let node = Node::new_identifier(id, loc);
+                    let node = Node::new_identifier(name, loc);
                     self.parse_function_args(node)
                 } else if !suppress_unparen_call && self.is_command() {
-                    Ok(self.parse_command(id, loc)?)
+                    Ok(self.parse_command(name, loc)?)
                 } else {
-                    Ok(Node::new_const(id, false, loc))
+                    Ok(Node::new_const(name, false, loc))
                 }
             }
             TokenKind::IntegerLit(num) => Ok(Node::new_integer(num, loc)),
@@ -879,11 +878,11 @@ impl<'a> Parser<'a> {
                     arglist.args.push(node);
                     return Ok(arglist);
                 }
-                match node.kind {
+                match &node.kind {
                     NodeKind::Ident(id, ..) | NodeKind::LocalVar(id) => {
                         if self.consume_punct_no_term(Punct::Colon)? {
                             // keyword args
-                            arglist.kw_args.push((id, self.parse_arg()?));
+                            arglist.kw_args.push((id.to_string(), self.parse_arg()?));
                         } else {
                             // positional args
                             arglist.args.push(node);
@@ -951,7 +950,7 @@ impl<'a> Parser<'a> {
         Ok(Node::new_begin(body, rescue, else_, ensure))
     }
 
-    fn parse_command(&mut self, operation: IdentId, loc: Loc) -> Result<Node, LexerErr> {
+    fn parse_command(&mut self, operation: String, loc: Loc) -> Result<Node, LexerErr> {
         // FNAME ARGS
         // FNAME ARGS DO-BLOCK
         let send_args = self.parse_arglist_block(None)?;
@@ -985,8 +984,8 @@ impl<'a> Parser<'a> {
 
     /// Check whether `lhs` is a local variable or not.
     fn check_lhs(&mut self, lhs: &Node) -> Result<(), LexerErr> {
-        if let NodeKind::Ident(id) = lhs.kind {
-            self.add_local_var_if_new(id);
+        if let NodeKind::Ident(name) = &lhs.kind {
+            self.add_local_var_if_new(name.to_string());
         } else if let NodeKind::Const { .. } = lhs.kind {
             for c in self.context_stack.iter().rev() {
                 match c.kind {

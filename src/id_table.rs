@@ -81,6 +81,10 @@ impl IdentId {
 }
 
 impl IdentId {
+    pub fn get(&self) -> u32 {
+        self.0.get()
+    }
+
     fn to_usize(&self) -> usize {
         self.0.get() as usize
     }

@@ -63,12 +63,7 @@ fn main() {
 }
 
 fn parse_and_output(program: String) {
-    match ruruby_parse::Parser::parse_program(
-        program,
-        Path::new(""),
-        "main",
-        IdentifierTable::new(),
-    ) {
+    match ruruby_parse::Parser::parse_program(program, Path::new(""), IdentifierTable::new()) {
         Ok(res) => println!("{:#?}", res.node),
         Err(err) => panic!("{:?}\n{}", err.kind, err.source_info.get_location(&err.loc)),
     };

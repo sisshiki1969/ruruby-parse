@@ -25,7 +25,7 @@ impl DummyFrame {
         None
     }
 
-    fn get_lvarid(&self, _id: IdentId) -> Option<LvarId> {
+    fn get_lvarid(&self, _id: &str) -> Option<LvarId> {
         None
     }
 }
@@ -51,11 +51,10 @@ impl<'a> Parser<'a> {
     pub fn parse_program(
         code: String,
         path: impl Into<PathBuf>,
-        context_name: &str,
         id_store: IdentifierTable,
     ) -> Result<ParseResult, ParseErr> {
         let path = path.into();
-        let parse_ctx = ParseContext::new_eval(context_name, None);
+        let parse_ctx = ParseContext::new_eval(None);
         parse(code, path, None, parse_ctx, id_store)
     }
 }
@@ -132,13 +131,13 @@ impl<'a> Parser<'a> {
 
     /// If the `id` does not exist in the scope chain,
     /// add `id` as a local variable in the current context.
-    fn add_local_var_if_new(&mut self, id: IdentId) {
-        if !self.is_local_var(id) {
+    fn add_local_var_if_new(&mut self, name: String) {
+        if !self.is_local_var(&name) {
             for c in self.context_stack.iter_mut().rev() {
                 match c.kind {
                     ParseContextKind::For => {}
                     _ => {
-                        c.lvar.insert(id);
+                        c.lvar.insert(name);
                         return;
                     }
                 };
@@ -148,8 +147,8 @@ impl<'a> Parser<'a> {
 
     /// Add the `id` as a new parameter in the current context.
     /// If a parameter with the same name already exists, return error.
-    fn new_param(&mut self, id: IdentId, loc: Loc) -> Result<LvarId, LexerErr> {
-        match self.context_mut().lvar.insert_new(id) {
+    fn new_param(&mut self, name: String, loc: Loc) -> Result<LvarId, LexerErr> {
+        match self.context_mut().lvar.insert_new(name) {
             Some(lvar) => Ok(lvar),
             None => Err(error_unexpected(loc, "Duplicated argument name.")),
         }
@@ -161,8 +160,8 @@ impl<'a> Parser<'a> {
 
     /// Add the `id` as a new parameter in the current context.
     /// If a parameter with the same name already exists, return error.
-    fn new_kwrest_param(&mut self, id: IdentId, loc: Loc) -> Result<(), LexerErr> {
-        if self.context_mut().lvar.insert_kwrest_param(id).is_none() {
+    fn new_kwrest_param(&mut self, name: String, loc: Loc) -> Result<(), LexerErr> {
+        if self.context_mut().lvar.insert_kwrest_param(name).is_none() {
             return Err(error_unexpected(loc, "Duplicated argument name."));
         }
         Ok(())
@@ -170,8 +169,8 @@ impl<'a> Parser<'a> {
 
     /// Add the `id` as a new block parameter in the current context.
     /// If a parameter with the same name already exists, return error.
-    fn new_block_param(&mut self, id: IdentId, loc: Loc) -> Result<(), LexerErr> {
-        if self.context_mut().lvar.insert_block_param(id).is_none() {
+    fn new_block_param(&mut self, name: String, loc: Loc) -> Result<(), LexerErr> {
+        if self.context_mut().lvar.insert_block_param(name).is_none() {
             return Err(error_unexpected(loc, "Duplicated argument name."));
         }
         Ok(())
@@ -188,7 +187,7 @@ impl<'a> Parser<'a> {
 
     /// Examine whether `id` exists in the scope chain.
     /// If exiets, return true.
-    fn is_local_var(&mut self, id: IdentId) -> bool {
+    fn is_local_var(&mut self, id: &str) -> bool {
         for c in self.context_stack.iter().rev() {
             if c.lvar.table.get_lvarid(id).is_some() {
                 return true;
@@ -273,11 +272,11 @@ impl<'a> Parser<'a> {
 
     /// If the next token is Ident, consume and return Some(it).
     /// If not, return None.
-    fn consume_ident(&mut self) -> Result<Option<IdentId>, LexerErr> {
+    fn consume_ident(&mut self) -> Result<Option<String>, LexerErr> {
         match self.peek()?.kind {
             TokenKind::Ident(s) => {
                 self.get()?;
-                Ok(Some(self.get_id_from_string(s)))
+                Ok(Some(s))
             }
             _ => Ok(None),
         }
@@ -374,9 +373,9 @@ impl<'a> Parser<'a> {
     /// Get the next token and examine whether it is Ident.
     /// Return IdentId of the Ident.
     /// If not, return RubyError.
-    fn expect_ident(&mut self) -> Result<IdentId, LexerErr> {
+    fn expect_ident(&mut self) -> Result<String, LexerErr> {
         match &self.get()?.kind {
-            TokenKind::Ident(s) => Ok(self.get_id(s)),
+            TokenKind::Ident(s) => Ok(s.clone()),
             _ => Err(error_unexpected(self.prev_loc(), "Expect identifier.")),
         }
     }
@@ -384,23 +383,21 @@ impl<'a> Parser<'a> {
     /// Get the next token and examine whether it is Const.
     /// Return IdentId of the Const.
     /// If not, return RubyError.
-    fn expect_const(&mut self) -> Result<IdentId, LexerErr> {
+    fn expect_const(&mut self) -> Result<String, LexerErr> {
         match self.get()?.kind {
-            TokenKind::Const(s) => Ok(self.get_id_from_string(s)),
+            TokenKind::Const(s) => Ok(s),
             _ => Err(error_unexpected(self.prev_loc(), "Expect constant.")),
         }
     }
 
-    fn read_method_name(&mut self, allow_assign_like: bool) -> Result<(IdentId, Loc), LexerErr> {
+    fn read_method_name(&mut self, allow_assign_like: bool) -> Result<(String, Loc), LexerErr> {
         self.lexer
             .read_method_name(allow_assign_like)
-            .map(|(s, loc)| (self.get_id_from_string(s), loc))
+            .map(|(s, loc)| (s, loc))
     }
 
-    fn read_method_ext(&mut self, s: &str) -> Result<IdentId, LexerErr> {
-        self.lexer
-            .read_method_ext(s)
-            .map(|s| self.get_id_from_string(s))
+    fn read_method_ext(&mut self, s: &str) -> Result<String, LexerErr> {
+        self.lexer.read_method_ext(s)
     }
 }
 
@@ -446,36 +443,36 @@ impl<'a> Parser<'a> {
 
     /// Parse operator which can be defined as a method.
     /// Return IdentId of the operator.
-    fn parse_op_definable(&mut self, punct: &Punct) -> Result<IdentId, LexerErr> {
+    fn parse_op_definable(&mut self, punct: &Punct) -> Result<String, LexerErr> {
         // TODO: must support
         // ^
         // **   ~   +@  -@   ` !  !~
         match punct {
-            Punct::Plus => Ok(IdentId::_ADD),
-            Punct::Minus => Ok(IdentId::_SUB),
-            Punct::Mul => Ok(IdentId::_MUL),
-            Punct::Div => Ok(IdentId::_DIV),
-            Punct::Rem => Ok(IdentId::_REM),
-            Punct::Shl => Ok(IdentId::_SHL),
-            Punct::Shr => Ok(IdentId::_SHR),
-            Punct::BitAnd => Ok(self.get_id("&")),
-            Punct::BitOr => Ok(self.get_id("|")),
+            Punct::Plus => Ok("+".to_string()),
+            Punct::Minus => Ok("-".to_string()),
+            Punct::Mul => Ok("*".to_string()),
+            Punct::Div => Ok("/".to_string()),
+            Punct::Rem => Ok("%".to_string()),
+            Punct::Shl => Ok("<<".to_string()),
+            Punct::Shr => Ok(">>".to_string()),
+            Punct::BitAnd => Ok("&".to_string()),
+            Punct::BitOr => Ok("|".to_string()),
 
-            Punct::Cmp => Ok(IdentId::_CMP),
-            Punct::Eq => Ok(IdentId::_EQ),
-            Punct::Ne => Ok(IdentId::_NEQ),
-            Punct::Lt => Ok(IdentId::_LT),
-            Punct::Le => Ok(IdentId::_LE),
-            Punct::Gt => Ok(IdentId::_GT),
-            Punct::Ge => Ok(IdentId::_GE),
-            Punct::TEq => Ok(IdentId::_TEQ),
-            Punct::Match => Ok(self.get_id("=~")),
+            Punct::Cmp => Ok("<=>".to_string()),
+            Punct::Eq => Ok("==".to_string()),
+            Punct::Ne => Ok("!=".to_string()),
+            Punct::Lt => Ok("<".to_string()),
+            Punct::Le => Ok("<=".to_string()),
+            Punct::Gt => Ok(">".to_string()),
+            Punct::Ge => Ok(">=".to_string()),
+            Punct::TEq => Ok("===".to_string()),
+            Punct::Match => Ok("=~".to_string()),
             Punct::LBracket => {
                 if self.consume_punct_no_term(Punct::RBracket)? {
                     if self.consume_punct_no_term(Punct::Assign)? {
-                        Ok(IdentId::_INDEX_ASSIGN)
+                        Ok("[]=".to_string())
                     } else {
-                        Ok(IdentId::_INDEX)
+                        Ok("[]".to_string())
                     }
                 } else {
                     let loc = self.loc();
@@ -542,10 +539,10 @@ impl<'a> Parser<'a> {
                 break;
             } else if self.consume_punct(Punct::BitAnd)? {
                 // Block param
-                let id = self.expect_ident()?;
+                let name = self.expect_ident()?;
                 loc = loc.merge(self.prev_loc());
-                args.push(FormalParam::block(id, loc));
-                self.new_block_param(id, loc)?;
+                args.push(FormalParam::block(name.clone(), loc));
+                self.new_block_param(name, loc)?;
                 break;
             } else if self.consume_punct(Punct::Mul)? {
                 // Splat(Rest) param
@@ -559,15 +556,15 @@ impl<'a> Parser<'a> {
                     state = Kind::Rest;
                 };
                 match self.consume_ident()? {
-                    Some(id) => {
-                        args.push(FormalParam::rest(id, loc));
-                        self.new_param(id, self.prev_loc())?;
+                    Some(name) => {
+                        args.push(FormalParam::rest(name.clone(), loc));
+                        self.new_param(name, self.prev_loc())?;
                     }
                     None => args.push(FormalParam::rest_discard(loc)),
                 }
             } else if self.consume_punct(Punct::DMul)? {
                 // Keyword rest param
-                let id = self.expect_ident()?;
+                let name = self.expect_ident()?;
                 loc = loc.merge(self.prev_loc());
                 if state >= Kind::KWRest {
                     return Err(error_unexpected(
@@ -578,10 +575,10 @@ impl<'a> Parser<'a> {
                     state = Kind::KWRest;
                 }
 
-                args.push(FormalParam::kwrest(id, loc));
-                self.new_kwrest_param(id, self.prev_loc())?;
+                args.push(FormalParam::kwrest(name.clone(), loc));
+                self.new_kwrest_param(name, self.prev_loc())?;
             } else {
-                let id = self.expect_ident()?;
+                let name = self.expect_ident()?;
                 if self.consume_punct(Punct::Assign)? {
                     // Optional param
                     let default = self.parse_arg()?;
@@ -596,8 +593,8 @@ impl<'a> Parser<'a> {
                             ))
                         }
                     };
-                    args.push(FormalParam::optional(id, default, loc));
-                    self.new_param(id, loc)?;
+                    args.push(FormalParam::optional(name.clone(), default, loc));
+                    self.new_param(name, loc)?;
                 } else if self.consume_punct_no_term(Punct::Colon)? {
                     // Keyword param
                     let next = self.peek_no_term()?.kind;
@@ -622,20 +619,20 @@ impl<'a> Parser<'a> {
                     } else {
                         state = Kind::KeyWord;
                     };
-                    args.push(FormalParam::keyword(id, default, loc));
-                    let lvar = self.new_param(id, loc)?;
+                    args.push(FormalParam::keyword(name.clone(), default, loc));
+                    let lvar = self.new_param(name, loc)?;
                     self.add_kw_param(lvar);
                 } else {
                     // Required param
                     loc = self.prev_loc();
                     match state {
                         Kind::Required => {
-                            args.push(FormalParam::req_param(id, loc));
-                            self.new_param(id, loc)?;
+                            args.push(FormalParam::req_param(name.clone(), loc));
+                            self.new_param(name, loc)?;
                         }
                         Kind::PostReq | Kind::Optional | Kind::Rest => {
-                            args.push(FormalParam::post(id, loc));
-                            self.new_param(id, loc)?;
+                            args.push(FormalParam::post(name.clone(), loc));
+                            self.new_param(name, loc)?;
                             state = Kind::PostReq;
                         }
                         _ => {
@@ -721,27 +718,24 @@ struct ParseContext {
 }
 
 impl ParseContext {
-    fn new_method(_name: IdentId) -> Self {
+    fn new_method() -> Self {
         ParseContext {
             lvar: LvarCollector::new(),
             kind: ParseContextKind::Method,
-            //name: Some(name),
         }
     }
 
-    fn new_eval(_name: &str, lvar_collector: Option<LvarCollector>) -> Self {
+    fn new_eval(lvar_collector: Option<LvarCollector>) -> Self {
         ParseContext {
             lvar: lvar_collector.unwrap_or_default(),
             kind: ParseContextKind::Eval,
-            //name: Some(IdentId::get_id(name)),
         }
     }
 
-    fn new_class(_name: IdentId, lvar_collector: Option<LvarCollector>) -> Self {
+    fn new_class(lvar_collector: Option<LvarCollector>) -> Self {
         ParseContext {
             lvar: lvar_collector.unwrap_or_default(),
             kind: ParseContextKind::Class,
-            //name: Some(name),
         }
     }
 
@@ -749,7 +743,6 @@ impl ParseContext {
         ParseContext {
             lvar: lvar_collector.unwrap_or_default(),
             kind: ParseContextKind::Block,
-            //name: None,
         }
     }
 
@@ -757,7 +750,6 @@ impl ParseContext {
         ParseContext {
             lvar: LvarCollector::new(),
             kind: ParseContextKind::For,
-            //name: None,
         }
     }
 }

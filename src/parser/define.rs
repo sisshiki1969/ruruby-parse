@@ -38,9 +38,8 @@ impl<'a> Parser<'a> {
                 } else if self.consume_punct_no_term(Punct::Dot)?
                     || self.consume_punct_no_term(Punct::Scope)?
                 {
-                    let id = self.get_id(s);
                     (
-                        Some(Node::new_lvar(id, loc)),
+                        Some(Node::new_lvar(s.clone(), loc)),
                         self.read_method_name(true)?.0,
                     )
                 } else {
@@ -51,9 +50,8 @@ impl<'a> Parser<'a> {
                 if self.consume_punct_no_term(Punct::Dot)?
                     || self.consume_punct_no_term(Punct::Scope)?
                 {
-                    let id = self.get_id(s);
                     (
-                        Some(Node::new_const(id, false, loc)),
+                        Some(Node::new_const(s.clone(), false, loc)),
                         self.read_method_name(true)?.0,
                     )
                 } else {
@@ -64,7 +62,7 @@ impl<'a> Parser<'a> {
             _ => return Err(error_unexpected(loc, "Invalid method name.")),
         };
 
-        self.context_stack.push(ParseContext::new_method(name));
+        self.context_stack.push(ParseContext::new_method());
         let args = self.parse_def_params()?;
         let body = self.parse_begin()?;
         let lvar = self.context_stack.pop().unwrap().lvar;
@@ -85,12 +83,13 @@ impl<'a> Parser<'a> {
         let loc = self.prev_loc();
         let prim = self.parse_class_def_name()?;
         let (base, name) = match prim.kind {
-            NodeKind::Const { toplevel: true, id } if !self.peek_punct_no_term(Punct::Scope) => {
-                (Node::new_nil(loc), id)
-            }
+            NodeKind::Const {
+                toplevel: true,
+                name: id,
+            } if !self.peek_punct_no_term(Punct::Scope) => (Node::new_nil(loc), id),
             NodeKind::Const {
                 toplevel: false,
-                id,
+                name: id,
                 ..
             } if !self.peek_punct_no_term(Punct::Scope) => (Node::new_nil(loc), id),
             NodeKind::Scope(base, id) => (*base, id),
@@ -109,7 +108,7 @@ impl<'a> Parser<'a> {
         };
         let loc = loc.merge(self.prev_loc());
         self.consume_term()?;
-        self.context_stack.push(ParseContext::new_class(name, None));
+        self.context_stack.push(ParseContext::new_class(None));
         let body = self.parse_begin()?;
         let lvar = self.context_stack.pop().unwrap().lvar;
         Ok(Node::new_class_decl(
@@ -125,9 +124,7 @@ impl<'a> Parser<'a> {
         let singleton = self.parse_expr()?;
         let loc = loc.merge(self.prev_loc());
         self.consume_term()?;
-        let singleton_id = self.get_id("Singleton");
-        self.context_stack
-            .push(ParseContext::new_class(singleton_id, None));
+        self.context_stack.push(ParseContext::new_class(None));
         let body = self.parse_begin()?;
         let lvar = self.context_stack.pop().unwrap().lvar;
         Ok(Node::new_singleton_class_decl(singleton, body, lvar, loc))
@@ -139,7 +136,7 @@ impl<'a> Parser<'a> {
         } else if let TokenKind::GlobalVar(_) = self.peek_no_term()?.kind {
             let tok = self.get()?;
             match &tok.kind {
-                TokenKind::GlobalVar(name) => Ok(Node::new_symbol(self.get_id(name), tok.loc)),
+                TokenKind::GlobalVar(name) => Ok(Node::new_symbol(name.to_owned(), tok.loc)),
                 _ => unreachable!(),
             }
         } else {

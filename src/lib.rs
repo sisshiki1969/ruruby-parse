@@ -40,7 +40,6 @@ mod test {
         let res = Parser::parse_program(
             "nil".to_string(),
             std::path::PathBuf::from("path"),
-            "name",
             IdentifierTable::new(),
         )
         .unwrap();
