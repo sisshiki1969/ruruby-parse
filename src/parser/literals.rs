@@ -130,17 +130,13 @@ impl<'a> Parser<'a> {
                 Node::new_string(self.lexer.code[start..end].to_string(), Loc(start, end))
             }
             ParseMode::Double => {
-                let id_store = std::mem::take(&mut self.id_store);
-                let mut parser = self.new_with_range(start, end, id_store);
+                let mut parser = self.new_with_range(start, end);
                 let res = parser.here_double();
-                self.id_store = std::mem::take(&mut parser.id_store);
                 res?
             }
             ParseMode::Command => {
-                let id_store = std::mem::take(&mut self.id_store);
-                let mut parser = self.new_with_range(start, end, id_store);
+                let mut parser = self.new_with_range(start, end);
                 let res = parser.here_command();
-                self.id_store = std::mem::take(&mut parser.id_store);
                 res?
             }
         };
@@ -322,14 +318,13 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn new_with_range(&self, pos: usize, end: usize, id_store: IdentifierTable) -> Self {
+    fn new_with_range(&self, pos: usize, end: usize) -> Self {
         let lexer = self.lexer.new_with_range(pos, end);
         Parser {
             lexer,
             path: self.path.clone(),
             prev_loc: Loc(0, 0),
             context_stack: vec![],
-            id_store,
             extern_context: None,
             suppress_acc_assign: false,
             suppress_mul_assign: false,

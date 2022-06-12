@@ -32,17 +32,11 @@ impl<T: PartialEq> Annot<T> {
 
 #[cfg(test)]
 mod test {
-    use crate::IdentifierTable;
-
     #[test]
     fn test() {
         use crate::parser::*;
-        let res = Parser::parse_program(
-            "nil".to_string(),
-            std::path::PathBuf::from("path"),
-            IdentifierTable::new(),
-        )
-        .unwrap();
+        let res =
+            Parser::parse_program("nil".to_string(), std::path::PathBuf::from("path")).unwrap();
         eprintln!("{:?}", res)
     }
 }
