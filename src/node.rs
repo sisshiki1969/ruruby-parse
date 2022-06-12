@@ -28,10 +28,10 @@ pub enum NodeKind {
 
     LocalVar(String),
     Ident(String),
-    InstanceVar(IdentId),
-    GlobalVar(IdentId),
+    InstanceVar(String),
+    GlobalVar(String),
     SpecialVar(usize),
-    ClassVar(IdentId),
+    ClassVar(String),
     Const {
         toplevel: bool,
         name: String,
@@ -485,16 +485,16 @@ impl Node {
         Node::new(NodeKind::Symbol(symbol), loc)
     }
 
-    pub(crate) fn new_instance_var(id: IdentId, loc: Loc) -> Self {
-        Node::new(NodeKind::InstanceVar(id), loc)
+    pub(crate) fn new_instance_var(name: String, loc: Loc) -> Self {
+        Node::new(NodeKind::InstanceVar(name), loc)
     }
 
-    pub(crate) fn new_class_var(id: IdentId, loc: Loc) -> Self {
-        Node::new(NodeKind::ClassVar(id), loc)
+    pub(crate) fn new_class_var(name: String, loc: Loc) -> Self {
+        Node::new(NodeKind::ClassVar(name), loc)
     }
 
-    pub(crate) fn new_global_var(id: IdentId, loc: Loc) -> Self {
-        Node::new(NodeKind::GlobalVar(id), loc)
+    pub(crate) fn new_global_var(name: String, loc: Loc) -> Self {
+        Node::new(NodeKind::GlobalVar(name), loc)
     }
 
     pub(crate) fn new_special_var(id: usize, loc: Loc) -> Self {

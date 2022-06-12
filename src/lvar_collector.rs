@@ -77,11 +77,11 @@ impl LvarCollector {
 
     /// Check whether `val` exists in `LvarCollector` or not, and return `LvarId` if exists.
     /// If not, add new variable `val` to the `LvarCollector`.
-    pub fn insert(&mut self, val: String) -> LvarId {
-        match self.table.get_lvarid(&val) {
+    pub fn insert(&mut self, val: &str) -> LvarId {
+        match self.table.get_lvarid(val) {
             Some(id) => id,
             None => {
-                self.table.push(val);
+                self.table.push(val.to_string());
                 (self.len() - 1).into()
             }
         }

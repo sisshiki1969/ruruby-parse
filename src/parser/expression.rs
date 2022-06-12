@@ -663,18 +663,9 @@ impl<'a> Parser<'a> {
                     }
                 }
             }
-            TokenKind::InstanceVar(name) => {
-                let id = self.get_id_from_string(name);
-                Ok(Node::new_instance_var(id, loc))
-            }
-            TokenKind::ClassVar(name) => {
-                let id = self.get_id_from_string(name);
-                Ok(Node::new_class_var(id, loc))
-            }
-            TokenKind::GlobalVar(name) => {
-                let id = self.get_id_from_string(name);
-                Ok(Node::new_global_var(id, loc))
-            }
+            TokenKind::InstanceVar(name) => Ok(Node::new_instance_var(name, loc)),
+            TokenKind::ClassVar(name) => Ok(Node::new_class_var(name, loc)),
+            TokenKind::GlobalVar(name) => Ok(Node::new_global_var(name, loc)),
             TokenKind::SpecialVar(id) => Ok(Node::new_special_var(id, loc)),
             TokenKind::Const(name) => {
                 if self.lexer.trailing_lparen() {
@@ -985,7 +976,7 @@ impl<'a> Parser<'a> {
     /// Check whether `lhs` is a local variable or not.
     fn check_lhs(&mut self, lhs: &Node) -> Result<(), LexerErr> {
         if let NodeKind::Ident(name) = &lhs.kind {
-            self.add_local_var_if_new(name.to_string());
+            self.add_local_var_if_new(&name);
         } else if let NodeKind::Const { .. } = lhs.kind {
             for c in self.context_stack.iter().rev() {
                 match c.kind {

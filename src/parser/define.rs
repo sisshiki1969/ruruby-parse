@@ -13,24 +13,22 @@ impl<'a> Parser<'a> {
         let def_loc = self.prev_loc();
         let tok = self.get()?;
         let loc = tok.loc;
-        let (singleton, name) = match &tok.kind {
+        let (singleton, name) = match tok.kind {
             TokenKind::GlobalVar(name) => {
-                let id = self.get_id(name);
                 self.consume_punct_no_term(Punct::Dot)?;
                 (
-                    Some(Node::new_global_var(id, loc)),
+                    Some(Node::new_global_var(name, loc)),
                     self.read_method_name(true)?.0,
                 )
             }
             TokenKind::InstanceVar(name) => {
                 self.consume_punct_no_term(Punct::Dot)?;
-                let id = self.get_id(name);
                 (
-                    Some(Node::new_instance_var(id, loc)),
+                    Some(Node::new_instance_var(name, loc)),
                     self.read_method_name(true)?.0,
                 )
             }
-            TokenKind::Reserved(r) => (None, self.read_method_ext(r.to_str())?),
+            TokenKind::Reserved(r) => (None, self.read_method_ext(r.to_str().to_string())?),
             TokenKind::Ident(s) => {
                 if s.as_str() == "self" {
                     self.consume_punct_no_term(Punct::Dot)?;
@@ -38,10 +36,7 @@ impl<'a> Parser<'a> {
                 } else if self.consume_punct_no_term(Punct::Dot)?
                     || self.consume_punct_no_term(Punct::Scope)?
                 {
-                    (
-                        Some(Node::new_lvar(s.clone(), loc)),
-                        self.read_method_name(true)?.0,
-                    )
+                    (Some(Node::new_lvar(s, loc)), self.read_method_name(true)?.0)
                 } else {
                     (None, self.read_method_ext(s)?)
                 }
@@ -51,14 +46,14 @@ impl<'a> Parser<'a> {
                     || self.consume_punct_no_term(Punct::Scope)?
                 {
                     (
-                        Some(Node::new_const(s.clone(), false, loc)),
+                        Some(Node::new_const(s, false, loc)),
                         self.read_method_name(true)?.0,
                     )
                 } else {
                     (None, self.read_method_ext(s)?)
                 }
             }
-            TokenKind::Punct(p) => (None, self.parse_op_definable(p)?),
+            TokenKind::Punct(p) => (None, self.parse_op_definable(&p)?),
             _ => return Err(error_unexpected(loc, "Invalid method name.")),
         };
 

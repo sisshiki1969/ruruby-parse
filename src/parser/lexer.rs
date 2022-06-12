@@ -580,13 +580,13 @@ impl<'a> Lexer<'a> {
     /// Check method name extension.
     /// Parse "xxxx=" as a valid mathod name.
     /// "xxxx!=" or "xxxx?=" is invalid.
-    pub(crate) fn read_method_ext(&mut self, s: &str) -> Result<String, LexerErr> {
+    pub(crate) fn read_method_ext(&mut self, s: String) -> Result<String, LexerErr> {
         self.flush();
         let id =
             if !(s.ends_with(&['!', '?'][..])) && self.peek2() != Some('>') && self.consume('=') {
                 format!("{}=", s)
             } else {
-                s.to_string()
+                s
             };
         Ok(id)
     }

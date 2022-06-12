@@ -47,22 +47,22 @@ impl<'a> Parser<'a> {
                 .read_string_literal_double(None, delimiter, level)?;
             let mut loc = tok.loc();
             match tok.kind {
-                TokenKind::StringLit(mut s) => {
+                TokenKind::StringLit(mut name) => {
                     loop {
                         match self.peek_no_term()?.kind {
                             TokenKind::StringLit(next_s) => {
                                 let t = self.get()?;
-                                s += &next_s;
+                                name += &next_s;
                                 loc = loc.merge(t.loc);
                             }
                             TokenKind::OpenString(next_s, _, _) => {
                                 let t = self.get()?;
-                                s += &next_s;
+                                name += &next_s;
                                 loc = loc.merge(t.loc);
                                 break;
                             }
                             _ => {
-                                nodes.push(Node::new_string(s, loc));
+                                nodes.push(Node::new_string(name, loc));
                                 return Ok(Node::new_interporated_string(
                                     nodes,
                                     start_loc.merge(loc),
@@ -70,10 +70,10 @@ impl<'a> Parser<'a> {
                             }
                         }
                     }
-                    nodes.push(Node::new_string(s.clone(), loc));
+                    nodes.push(Node::new_string(name, loc));
                 }
                 TokenKind::OpenString(s, _, _) => {
-                    nodes.push(Node::new_string(s.clone(), loc));
+                    nodes.push(Node::new_string(s, loc));
                 }
                 _ => unreachable!("{:?}", tok),
             }
@@ -312,15 +312,9 @@ impl<'a> Parser<'a> {
         } else {
             let tok = self.get()?;
             let loc = tok.loc();
-            let node = match &tok.kind {
-                TokenKind::GlobalVar(s) => {
-                    let id = self.get_id(s);
-                    Node::new_global_var(id, loc)
-                }
-                TokenKind::InstanceVar(s) => {
-                    let id = self.get_id(s);
-                    Node::new_instance_var(id, loc)
-                }
+            let node = match tok.kind {
+                TokenKind::GlobalVar(name) => Node::new_global_var(name, loc),
+                TokenKind::InstanceVar(name) => Node::new_instance_var(name, loc),
                 _ => unreachable!("{:?}", tok),
             };
             nodes.push(node);

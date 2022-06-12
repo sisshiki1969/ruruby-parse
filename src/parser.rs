@@ -12,7 +12,7 @@ pub(crate) use lexer::*;
 pub trait LocalsContext: Copy + Sized {
     fn outer(&self) -> Option<Self>;
 
-    fn get_lvarid(&self, id: IdentId) -> Option<LvarId>;
+    fn get_lvarid(&self, id: &str) -> Option<LvarId>;
 
     fn lvar_collector(&self) -> LvarCollector;
 }
@@ -131,7 +131,7 @@ impl<'a> Parser<'a> {
 
     /// If the `id` does not exist in the scope chain,
     /// add `id` as a local variable in the current context.
-    fn add_local_var_if_new(&mut self, name: String) {
+    fn add_local_var_if_new(&mut self, name: &str) {
         if !self.is_local_var(&name) {
             for c in self.context_stack.iter_mut().rev() {
                 match c.kind {
@@ -205,16 +205,6 @@ impl<'a> Parser<'a> {
             ctx = a.outer();
         }
         false
-    }
-
-    /// Get *IdentId* from &str.
-    fn get_id(&mut self, string: &str) -> IdentId {
-        self.id_store.get_ident_id(string)
-    }
-
-    /// Get *IdentId* from String.
-    fn get_id_from_string(&mut self, string: String) -> IdentId {
-        self.id_store.get_ident_id_from_string(string)
     }
 
     /// Peek next token (skipping line terminators).
@@ -374,8 +364,8 @@ impl<'a> Parser<'a> {
     /// Return IdentId of the Ident.
     /// If not, return RubyError.
     fn expect_ident(&mut self) -> Result<String, LexerErr> {
-        match &self.get()?.kind {
-            TokenKind::Ident(s) => Ok(s.clone()),
+        match self.get()?.kind {
+            TokenKind::Ident(name) => Ok(name),
             _ => Err(error_unexpected(self.prev_loc(), "Expect identifier.")),
         }
     }
@@ -396,7 +386,7 @@ impl<'a> Parser<'a> {
             .map(|(s, loc)| (s, loc))
     }
 
-    fn read_method_ext(&mut self, s: &str) -> Result<String, LexerErr> {
+    fn read_method_ext(&mut self, s: String) -> Result<String, LexerErr> {
         self.lexer.read_method_ext(s)
     }
 }
