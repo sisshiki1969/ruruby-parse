@@ -203,7 +203,7 @@ pub struct ArgList {
 }
 
 impl ArgList {
-    pub(crate) fn default() -> Self {
+    pub fn default() -> Self {
         ArgList {
             args: vec![],
             kw_args: vec![],
