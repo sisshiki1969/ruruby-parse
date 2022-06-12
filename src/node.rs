@@ -34,10 +34,11 @@ pub enum NodeKind {
     ClassVar(String),
     Const {
         toplevel: bool,
+        parent: Option<Box<Node>>,
+        prefix: Vec<String>,
         name: String,
     },
-    Scope(Box<Node>, String),
-
+    //Scope(Box<Node>, String),
     BinOp(BinOp, Box<Node>, Box<Node>),
     UnOp(UnOp, Box<Node>),
     Index {
@@ -89,9 +90,9 @@ pub enum NodeKind {
         LvarCollector,
     ), // singleton_class, id, params, body
     ClassDef {
-        base: Box<Node>,
+        base: Option<Box<Node>>,
         name: String,
-        superclass: Box<Node>,
+        superclass: Option<Box<Node>>,
         body: Box<Node>,
         lvar: LvarCollector,
         is_module: bool,
@@ -501,13 +502,27 @@ impl Node {
         Node::new(NodeKind::SpecialVar(id), loc)
     }
 
-    pub(crate) fn new_const(name: String, toplevel: bool, loc: Loc) -> Self {
-        Node::new(NodeKind::Const { toplevel, name }, loc)
+    pub(crate) fn new_const(
+        name: String,
+        toplevel: bool,
+        parent: Option<Box<Node>>,
+        prefix: Vec<String>,
+        loc: Loc,
+    ) -> Self {
+        Node::new(
+            NodeKind::Const {
+                toplevel,
+                parent,
+                prefix,
+                name,
+            },
+            loc,
+        )
     }
 
-    pub(crate) fn new_scope(parent: Node, name: String, loc: Loc) -> Self {
+    /*pub(crate) fn new_scope(parent: Node, name: String, loc: Loc) -> Self {
         Node::new(NodeKind::Scope(Box::new(parent), name), loc)
-    }
+    }*/
 
     pub(crate) fn new_mul_assign(mlhs: Vec<Node>, mrhs: Vec<Node>) -> Self {
         let splat_flag = mrhs.iter().any(|n| n.is_splat());
@@ -553,9 +568,9 @@ impl Node {
     }
 
     pub(crate) fn new_class_decl(
-        base: Node,
+        base: Option<Node>,
         name: String,
-        superclass: Node,
+        superclass: Option<Node>,
         body: Node,
         lvar: LvarCollector,
         is_module: bool,
@@ -563,9 +578,9 @@ impl Node {
     ) -> Self {
         Node::new(
             NodeKind::ClassDef {
-                base: Box::new(base),
+                base: base.map(|node| Box::new(node)),
                 name,
-                superclass: Box::new(superclass),
+                superclass: superclass.map(|node| Box::new(node)),
                 body: Box::new(body),
                 is_module,
                 lvar,

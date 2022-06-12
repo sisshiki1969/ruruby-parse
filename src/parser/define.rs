@@ -46,7 +46,7 @@ impl<'a> Parser<'a> {
                     || self.consume_punct_no_term(Punct::Scope)?
                 {
                     (
-                        Some(Node::new_const(s, false, loc)),
+                        Some(Node::new_const(s, false, None, vec![], loc)),
                         self.read_method_name(true)?.0,
                     )
                 } else {
@@ -69,25 +69,39 @@ impl<'a> Parser<'a> {
         };
         Ok(decl)
     }
+
     /// Parse class definition.
     pub(super) fn parse_class(&mut self, is_module: bool) -> Result<Node, LexerErr> {
         // クラス定義 : "class" クラスパス [行終端子禁止] ("<" 式)? 分離子 本体文 "end"
         // クラスパス : "::" 定数識別子
         //      ｜ 定数識別子
         //      ｜ 一次式 [行終端子禁止] "::" 定数識別子
-        let loc = self.prev_loc();
+        //let loc = self.prev_loc();
+        let mut loc = self.prev_loc;
         let prim = self.parse_class_def_name()?;
         let (base, name) = match prim.kind {
             NodeKind::Const {
-                toplevel: true,
-                name: id,
-            } if !self.peek_punct_no_term(Punct::Scope) => (Node::new_nil(loc), id),
-            NodeKind::Const {
-                toplevel: false,
-                name: id,
-                ..
-            } if !self.peek_punct_no_term(Punct::Scope) => (Node::new_nil(loc), id),
-            NodeKind::Scope(base, id) => (*base, id),
+                toplevel,
+                name,
+                parent,
+                mut prefix,
+            } => match prefix.pop() {
+                Some(parent_name) => (
+                    Some(Node::new_const(
+                        parent_name,
+                        toplevel,
+                        parent,
+                        prefix,
+                        prim.loc,
+                    )),
+                    name,
+                ),
+                None => match parent {
+                    Some(parent) => (Some(*parent), name),
+                    None => (None, name),
+                },
+            },
+            //NodeKind::Scope(base, id) => (*base, id),
             _ => return Err(error_unexpected(prim.loc, "Invalid Class/Module name.")),
         };
         //eprintln!("base:{:?} name:{:?}", base, name);
@@ -96,16 +110,15 @@ impl<'a> Parser<'a> {
             if is_module {
                 return Err(error_unexpected(self.prev_loc(), "Unexpected '<'."));
             };
-            self.parse_expr()?
+            Some(self.parse_expr()?)
         } else {
-            let loc = loc.merge(self.prev_loc());
-            Node::new_nil(loc)
+            None
         };
-        let loc = loc.merge(self.prev_loc());
         self.consume_term()?;
         self.context_stack.push(ParseContext::new_class(None));
         let body = self.parse_begin()?;
         let lvar = self.context_stack.pop().unwrap().lvar;
+        loc = loc.merge(body.loc);
         Ok(Node::new_class_decl(
             base, name, superclass, body, lvar, is_module, loc,
         ))
@@ -167,9 +180,29 @@ impl<'a> Parser<'a> {
             node = if self.consume_punct(Punct::Dot)? {
                 self.parse_primary_method(node, false)?
             } else if self.consume_punct_no_term(Punct::Scope)? {
-                let loc = self.prev_loc();
+                let loc = node.loc;
                 let name = self.expect_const()?;
-                Node::new_scope(node, name, loc)
+
+                if let NodeKind::Const {
+                    toplevel,
+                    parent,
+                    mut prefix,
+                    name: parent_name,
+                } = node.kind
+                {
+                    prefix.push(parent_name);
+                    Node::new_const(name, toplevel, parent, prefix, self.prev_loc().merge(loc))
+                } else {
+                    Node::new_const(
+                        name,
+                        false,
+                        Some(Box::new(node)),
+                        vec![],
+                        self.prev_loc().merge(loc),
+                    )
+                }
+
+                //Node::new_const(name, node,  loc)
             } else {
                 return Ok(node);
             };

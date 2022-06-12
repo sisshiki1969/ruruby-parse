@@ -517,10 +517,27 @@ impl<'a> Parser<'a> {
             } else if self.consume_punct_no_term(Punct::SafeNav)? {
                 self.parse_primary_method(node, true)?
             } else if self.consume_punct_no_term(Punct::Scope)? {
-                let loc = self.prev_loc();
                 if let TokenKind::Const(_) = self.peek()?.kind {
+                    let loc = node.loc;
                     let name = self.expect_const()?;
-                    Node::new_scope(node, name, self.prev_loc().merge(loc))
+                    if let NodeKind::Const {
+                        toplevel,
+                        parent,
+                        mut prefix,
+                        name: parent_name,
+                    } = node.kind
+                    {
+                        prefix.push(parent_name);
+                        Node::new_const(name, toplevel, parent, prefix, self.prev_loc().merge(loc))
+                    } else {
+                        Node::new_const(
+                            name,
+                            false,
+                            Some(Box::new(node)),
+                            vec![],
+                            self.prev_loc().merge(loc),
+                        )
+                    }
                 } else {
                     self.parse_primary_method(node, false)?
                 }
@@ -674,7 +691,7 @@ impl<'a> Parser<'a> {
                 } else if !suppress_unparen_call && self.is_command() {
                     Ok(self.parse_command(name, loc)?)
                 } else {
-                    Ok(Node::new_const(name, false, loc))
+                    Ok(Node::new_const(name, false, None, vec![], loc))
                 }
             }
             TokenKind::IntegerLit(num) => Ok(Node::new_integer(num, loc)),
@@ -722,7 +739,7 @@ impl<'a> Parser<'a> {
                 Punct::Arrow => self.parse_lambda_literal(),
                 Punct::Scope => {
                     let name = self.expect_const()?;
-                    Ok(Node::new_const(name, true, loc))
+                    Ok(Node::new_const(name, true, None, vec![], loc))
                 }
                 Punct::Div => self.parse_regexp(),
                 Punct::Rem => self.parse_percent_notation(),
