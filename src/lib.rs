@@ -1,4 +1,5 @@
 #![feature(once_cell)]
+#![feature(const_option)]
 mod error;
 mod id_table;
 mod lvar_collector;

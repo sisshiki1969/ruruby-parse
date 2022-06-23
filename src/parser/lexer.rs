@@ -781,6 +781,12 @@ impl<'a> Lexer<'a> {
                     }
                     _ => s.push('#'),
                 },
+                '\n' => {
+                    s.push('\n');
+                    if self.heredoc_pos > self.pos {
+                        self.pos = self.heredoc_pos;
+                    }
+                }
                 c => s.push(c),
             }
         }

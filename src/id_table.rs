@@ -10,7 +10,7 @@ pub struct IdentId(NonZeroU32);
 
 impl std::default::Default for IdentId {
     fn default() -> Self {
-        Self(unsafe { NonZeroU32::new_unchecked(1u32) })
+        Self(NonZeroU32::new(1u32).unwrap())
     }
 }
 
@@ -31,14 +31,14 @@ impl From<IdentId> for u32 {
 impl From<u32> for IdentId {
     #[inline(always)]
     fn from(id: u32) -> Self {
-        let id = unsafe { NonZeroU32::new_unchecked(id) };
+        let id = NonZeroU32::new(id).unwrap();
         IdentId(id)
     }
 }
 
 macro_rules! id {
     ($constant:expr) => {
-        IdentId(unsafe { std::num::NonZeroU32::new_unchecked($constant) })
+        IdentId(std::num::NonZeroU32::new($constant).unwrap())
     };
 }
 
@@ -102,7 +102,7 @@ impl IdentifierTable {
             rev_table: FxHashMap::default(),
             table: vec![String::new(); 40],
         };
-        table.set_ident_id("<null>", IdentId::from(0));
+        //table.set_ident_id("<null>", IdentId::from(0));
         table.set_ident_id("initialize", IdentId::INITIALIZE);
         table.set_ident_id("Object", IdentId::OBJECT);
         table.set_ident_id("new", IdentId::NEW);
@@ -143,14 +143,14 @@ impl IdentifierTable {
 
     fn set_ident_id(&mut self, name: &str, id: IdentId) {
         self.rev_table.insert(name.to_string(), id);
-        self.table[id.to_usize()] = name.to_string();
+        self.table[id.to_usize() - 1] = name.to_string();
     }
 
     pub fn get_ident_id<'a>(&mut self, name: &str) -> IdentId {
         match self.rev_table.get(name) {
             Some(id) => (*id).into(),
             None => {
-                let id = IdentId::from(self.table.len() as u32);
+                let id = IdentId::from(self.table.len() as u32 + 1);
                 self.rev_table.insert(name.to_string(), id);
                 self.table.push(name.to_string());
                 id.into()
@@ -162,7 +162,7 @@ impl IdentifierTable {
         match self.rev_table.get(&name) {
             Some(id) => (*id).into(),
             None => {
-                let id = IdentId::from(self.table.len() as u32);
+                let id = IdentId::from(self.table.len() as u32 + 1);
                 self.rev_table.insert(name.clone(), id);
                 self.table.push(name);
                 id.into()
@@ -171,6 +171,6 @@ impl IdentifierTable {
     }
 
     pub fn get_name(&self, id: IdentId) -> &str {
-        &self.table[id.to_usize()]
+        &self.table[id.to_usize() - 1]
     }
 }
