@@ -240,6 +240,33 @@ impl CaseBranch {
     }
 }
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum CmpKind {
+    Eq = 0,
+    Ne = 1,
+    Lt = 2,
+    Le = 3,
+    Gt = 4,
+    Ge = 5,
+    TEq = 6,
+    Cmp = 7,
+}
+
+impl std::fmt::Debug for CmpKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Eq => write!(f, "=="),
+            Self::Ne => write!(f, "!="),
+            Self::Ge => write!(f, ">="),
+            Self::Gt => write!(f, ">"),
+            Self::Le => write!(f, "<="),
+            Self::Lt => write!(f, "<"),
+            Self::TEq => write!(f, "==="),
+            Self::Cmp => write!(f, "<=>"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BinOp {
     Add,
@@ -253,54 +280,10 @@ pub enum BinOp {
     BitAnd,
     BitOr,
     BitXor,
-    Eq,
-    Ne,
-    TEq,
-    Gt,
-    Ge,
-    Lt,
-    Le,
-    Cmp,
+    Cmp(CmpKind),
     LAnd,
     LOr,
     Match,
-}
-
-impl BinOp {
-    pub fn is_cmp_op(&self) -> bool {
-        matches!(
-            self,
-            BinOp::Eq | BinOp::Ne | BinOp::Ge | BinOp::Gt | BinOp::Le | BinOp::Lt
-        )
-    }
-
-    /*pub fn to_method(self) -> IdentId {
-        let s = match self {
-            Self::Add => "+",
-            Self::Sub => "-",
-            Self::Mul => "*",
-            Self::Div => "/",
-            Self::Rem => "%",
-            Self::Exp => "**",
-            Self::Shr => ">>",
-            Self::Shl => "<<",
-            Self::BitAnd => "&",
-            Self::BitOr => "|",
-            Self::BitXor => "^",
-            Self::Eq => "==",
-            Self::Ne => "!=",
-            Self::TEq => "===",
-            Self::Gt => ">",
-            Self::Ge => ">=",
-            Self::Lt => "<",
-            Self::Le => "<=",
-            Self::Cmp => "<=>",
-            Self::LAnd => "&&",
-            Self::LOr => "||",
-            Self::Match => "=~",
-        };
-        IdentId::get_id(s)
-    }*/
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -309,18 +292,6 @@ pub enum UnOp {
     Not,
     Pos,
     Neg,
-}
-
-impl UnOp {
-    /*pub fn to_method(self) -> IdentId {
-        let s = match self {
-            Self::BitNot => "~",
-            Self::Not => "!",
-            Self::Pos => "+@",
-            Self::Neg => "-@",
-        };
-        IdentId::get_id(s)
-    }*/
 }
 
 impl Node {

@@ -280,13 +280,13 @@ impl<'a> Parser<'a> {
         let lhs = self.parse_arg_comp()?;
         if self.consume_punct_no_term(Punct::Eq)? {
             let rhs = self.parse_arg_comp()?;
-            Ok(Node::new_binop(BinOp::Eq, lhs, rhs))
+            Ok(Node::new_binop(BinOp::Cmp(CmpKind::Eq), lhs, rhs))
         } else if self.consume_punct_no_term(Punct::Ne)? {
             let rhs = self.parse_arg_comp()?;
-            Ok(Node::new_binop(BinOp::Ne, lhs, rhs))
+            Ok(Node::new_binop(BinOp::Cmp(CmpKind::Ne), lhs, rhs))
         } else if self.consume_punct_no_term(Punct::TEq)? {
             let rhs = self.parse_arg_comp()?;
-            Ok(Node::new_binop(BinOp::TEq, lhs, rhs))
+            Ok(Node::new_binop(BinOp::Cmp(CmpKind::TEq), lhs, rhs))
         } else if self.consume_punct_no_term(Punct::Match)? {
             let rhs = self.parse_arg_comp()?;
             Ok(Node::new_binop(BinOp::Match, lhs, rhs))
@@ -308,19 +308,19 @@ impl<'a> Parser<'a> {
         loop {
             if self.consume_punct_no_term(Punct::Ge)? {
                 let rhs = self.parse_arg_bitor()?;
-                lhs = Node::new_binop(BinOp::Ge, lhs, rhs);
+                lhs = Node::new_binop(BinOp::Cmp(CmpKind::Ge), lhs, rhs);
             } else if self.consume_punct_no_term(Punct::Gt)? {
                 let rhs = self.parse_arg_bitor()?;
-                lhs = Node::new_binop(BinOp::Gt, lhs, rhs);
+                lhs = Node::new_binop(BinOp::Cmp(CmpKind::Gt), lhs, rhs);
             } else if self.consume_punct_no_term(Punct::Le)? {
                 let rhs = self.parse_arg_bitor()?;
-                lhs = Node::new_binop(BinOp::Le, lhs, rhs);
+                lhs = Node::new_binop(BinOp::Cmp(CmpKind::Le), lhs, rhs);
             } else if self.consume_punct_no_term(Punct::Lt)? {
                 let rhs = self.parse_arg_bitor()?;
-                lhs = Node::new_binop(BinOp::Lt, lhs, rhs);
+                lhs = Node::new_binop(BinOp::Cmp(CmpKind::Lt), lhs, rhs);
             } else if self.consume_punct_no_term(Punct::Cmp)? {
                 let rhs = self.parse_arg_bitor()?;
-                lhs = Node::new_binop(BinOp::Cmp, lhs, rhs);
+                lhs = Node::new_binop(BinOp::Cmp(CmpKind::Cmp), lhs, rhs);
             } else {
                 break;
             }
