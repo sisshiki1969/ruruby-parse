@@ -257,12 +257,28 @@ impl std::fmt::Debug for CmpKind {
         match self {
             Self::Eq => write!(f, "=="),
             Self::Ne => write!(f, "!="),
-            Self::Ge => write!(f, ">="),
-            Self::Gt => write!(f, ">"),
-            Self::Le => write!(f, "<="),
             Self::Lt => write!(f, "<"),
+            Self::Le => write!(f, "<="),
+            Self::Gt => write!(f, ">"),
+            Self::Ge => write!(f, ">="),
             Self::TEq => write!(f, "==="),
             Self::Cmp => write!(f, "<=>"),
+        }
+    }
+}
+
+impl CmpKind {
+    pub fn from(i: u16) -> Self {
+        match i {
+            0 => Self::Eq,
+            1 => Self::Ne,
+            2 => Self::Lt,
+            3 => Self::Le,
+            4 => Self::Gt,
+            5 => Self::Ge,
+            6 => Self::TEq,
+            7 => Self::Cmp,
+            _ => unimplemented!(),
         }
     }
 }
