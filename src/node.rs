@@ -426,7 +426,10 @@ impl Node {
         Node::new(NodeKind::AliasMethod(Box::new(new), Box::new(old)), loc)
     }
 
-    pub(crate) fn new_comp_stmt(nodes: Vec<Node>, mut loc: Loc) -> Self {
+    pub(crate) fn new_comp_stmt(mut nodes: Vec<Node>, mut loc: Loc) -> Self {
+        if nodes.len() == 1 {
+            return nodes.remove(0);
+        }
         if let Some(node) = nodes.first() {
             loc = node.loc();
         };
