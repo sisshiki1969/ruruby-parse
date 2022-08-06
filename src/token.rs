@@ -61,6 +61,12 @@ pub(crate) enum TokenKind {
     LineTerm,
 }
 
+impl std::default::Default for TokenKind {
+    fn default() -> Self {
+        Self::Eof
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, IntoEnumIterator)]
 pub(crate) enum Reserved {
     BEGIN,

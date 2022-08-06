@@ -119,6 +119,12 @@ pub enum NodeKind {
     AliasMethod(Box<Node>, Box<Node>), // (new_method, old_method)
 }
 
+impl std::default::Default for NodeKind {
+    fn default() -> Self {
+        Self::Nil
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct BlockInfo {
     pub params: Vec<FormalParam>,
@@ -187,6 +193,12 @@ pub enum ParamKind {
     KWRest(String),
     Block(String),
     Delegate,
+}
+
+impl std::default::Default for ParamKind {
+    fn default() -> Self {
+        Self::Delegate
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
