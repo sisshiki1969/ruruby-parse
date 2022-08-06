@@ -15,13 +15,13 @@ pub use parser::*;
 pub use source_info::*;
 use token::*;
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct Annot<T: PartialEq> {
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Annot<T: PartialEq + Default> {
     pub kind: T,
     pub loc: Loc,
 }
 
-impl<T: PartialEq> Annot<T> {
+impl<T: PartialEq + Default> Annot<T> {
     pub fn new(kind: T, loc: Loc) -> Self {
         Annot { kind, loc }
     }

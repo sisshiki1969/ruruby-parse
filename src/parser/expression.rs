@@ -134,8 +134,9 @@ impl<'a> Parser<'a> {
         }
 
         let mrhs = self.parse_mul_assign_rhs_if_allowed()?;
-        for lhs in &mlhs {
-            self.check_lhs(lhs)?;
+        for lhs in &mut mlhs {
+            let mut node = self.check_lhs(std::mem::take(lhs))?;
+            std::mem::swap(lhs, &mut node);
         }
 
         Ok(Node::new_mul_assign(mlhs, mrhs))
@@ -211,7 +212,7 @@ impl<'a> Parser<'a> {
             return Ok(lhs);
         }
         if self.consume_punct_no_term(Punct::Assign)? {
-            self.check_lhs(&lhs)?;
+            let lhs = self.check_lhs(lhs)?;
             let mrhs = self.parse_mul_assign_rhs(None)?;
             Ok(Node::new_mul_assign(vec![lhs], mrhs))
         } else if let Some(op) = self.consume_assign_op_no_term()? {
@@ -440,7 +441,7 @@ impl<'a> Parser<'a> {
     fn parse_accesory_assign(&mut self, lhs: Node) -> Result<Node, LexerErr> {
         if !self.suppress_acc_assign {
             if self.consume_punct_no_term(Punct::Assign)? {
-                self.check_lhs(&lhs)?;
+                let lhs = self.check_lhs(lhs)?;
                 let mrhs = self.parse_mul_assign_rhs_if_allowed()?;
                 return Ok(Node::new_mul_assign(vec![lhs], mrhs));
             } else if let Some(op) = self.consume_assign_op_no_term()? {
@@ -452,16 +453,12 @@ impl<'a> Parser<'a> {
 
     /// Parse assign-op.
     /// <lhs> <assign_op> <arg>
-    fn parse_assign_op(&mut self, mut lhs: Node, op: BinOp) -> Result<Node, LexerErr> {
+    fn parse_assign_op(&mut self, lhs: Node, op: BinOp) -> Result<Node, LexerErr> {
         match op {
             BinOp::LOr | BinOp::LAnd => {
                 self.get()?;
                 let rhs = self.parse_arg()?;
-                self.check_lhs(&lhs)?;
-                let loc = lhs.loc();
-                if let NodeKind::Ident(name) = lhs.kind {
-                    lhs = Node::new_lvar(name, loc);
-                };
+                let lhs = self.check_lhs(lhs)?;
                 let node =
                     Node::new_binop(op, lhs.clone(), Node::new_mul_assign(vec![lhs], vec![rhs]));
                 Ok(node)
@@ -469,7 +466,7 @@ impl<'a> Parser<'a> {
             _ => {
                 self.get()?;
                 let rhs = self.parse_arg()?;
-                self.check_lhs(&lhs)?;
+                let lhs = self.check_lhs(lhs)?;
                 Ok(Node::new_assign_op(op, lhs, rhs))
             }
         }
@@ -936,8 +933,7 @@ impl<'a> Parser<'a> {
                 };
                 if self.consume_punct_no_term(Punct::FatArrow)? {
                     let lhs = self.parse_primary(true)?;
-                    self.check_lhs(&lhs)?;
-                    assign = Some(lhs);
+                    assign = Some(self.check_lhs(lhs)?);
                 }
                 self.parse_then()?;
             };
@@ -991,13 +987,14 @@ impl<'a> Parser<'a> {
     }
 
     /// Check whether `lhs` is a local variable or not.
-    fn check_lhs(&mut self, lhs: &Node) -> Result<(), LexerErr> {
-        if let NodeKind::Ident(name) = &lhs.kind {
+    fn check_lhs(&mut self, lhs: Node) -> Result<Node, LexerErr> {
+        if let NodeKind::Ident(name) = lhs.kind {
             self.add_local_var_if_new(&name);
+            return Ok(Node::new_lvar(name, lhs.loc));
         } else if let NodeKind::Const { .. } = lhs.kind {
             for c in self.context_stack.iter().rev() {
                 match c.kind {
-                    ParseContextKind::Class | ParseContextKind::Eval => return Ok(()),
+                    ParseContextKind::Class | ParseContextKind::Eval => return Ok(lhs),
                     ParseContextKind::Method => {
                         return Err(error_unexpected(lhs.loc(), "Dynamic constant assignment."))
                     }
@@ -1005,7 +1002,7 @@ impl<'a> Parser<'a> {
                 }
             }
         };
-        Ok(())
+        Ok(lhs)
     }
 
     fn is_command(&mut self) -> bool {
