@@ -59,10 +59,10 @@ impl<'a> Parser<'a> {
     pub fn parse_program_binding(
         code: String,
         path: PathBuf,
-        context: Option<impl LocalsContext>,
+        context: Option<LvarCollector>,
         extern_context: Option<DummyFrame>,
     ) -> Result<ParseResult, ParseErr> {
-        let parse_ctx = ParseContext::new_block(context.map(|ctx| ctx.lvar_collector()));
+        let parse_ctx = ParseContext::new_block(context);
         parse(code, path, extern_context, parse_ctx)
     }
 }
