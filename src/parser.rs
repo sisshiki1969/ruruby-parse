@@ -9,13 +9,13 @@ mod lexer;
 mod literals;
 pub(crate) use lexer::*;
 
-pub trait LocalsContext: Copy + Sized {
+/*pub trait LocalsContext: Copy + Sized {
     fn outer(&self) -> Option<Self>;
 
     fn get_lvarid(&self, id: &str) -> Option<LvarId>;
 
     fn lvar_collector(&self) -> LvarCollector;
-}
+}*/
 
 #[derive(Debug, Clone, PartialEq, Copy)]
 pub struct DummyFrame();
