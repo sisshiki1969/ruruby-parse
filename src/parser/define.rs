@@ -77,8 +77,8 @@ impl<'a> Parser<'a> {
         //      ｜ 定数識別子
         //      ｜ 一次式 [行終端子禁止] "::" 定数識別子
         //let loc = self.prev_loc();
-        let mut loc = self.prev_loc;
         let prim = self.parse_class_def_name()?;
+        let loc = prim.loc;
         let (base, name) = match prim.kind {
             NodeKind::Const {
                 toplevel,
@@ -118,7 +118,6 @@ impl<'a> Parser<'a> {
         self.context_stack.push(ParseContext::new_class(None));
         let body = self.parse_begin()?;
         let lvar = self.context_stack.pop().unwrap().lvar;
-        loc = loc.merge(body.loc);
         Ok(Node::new_class_decl(
             base, name, superclass, body, lvar, is_module, loc,
         ))
