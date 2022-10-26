@@ -9,7 +9,7 @@ mod source_info;
 mod token;
 pub use error::*;
 pub use id_table::*;
-use lvar_collector::*;
+pub use lvar_collector::*;
 pub use node::*;
 pub use parser::*;
 pub use source_info::*;
