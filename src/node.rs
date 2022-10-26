@@ -81,26 +81,22 @@ pub enum NodeKind {
     Next(Box<Node>),
     Return(Box<Node>),
     Yield(ArgList),
-    MethodDef(String, Vec<FormalParam>, Box<Node>, LvarCollector), // id, params, body
+    MethodDef(String, BlockInfo), // id, params, body
     SingletonMethodDef(
         Box<Node>,
         String,
-        Vec<FormalParam>,
-        Box<Node>,
-        LvarCollector,
+        BlockInfo
     ), // singleton_class, id, params, body
     ClassDef {
         base: Option<Box<Node>>,
         name: String,
         superclass: Option<Box<Node>>,
-        body: Box<Node>,
-        lvar: LvarCollector,
+        info: BlockInfo,
         is_module: bool,
     },
     SingletonClassDef {
         singleton: Box<Node>,
-        body: Box<Node>,
-        lvar: LvarCollector,
+        info: BlockInfo,
     },
     MethodCall {
         receiver: Box<Node>,
@@ -551,7 +547,8 @@ impl Node {
         loc: Loc,
     ) -> Self {
         let loc = body.loc().merge(loc);
-        Node::new(NodeKind::MethodDef(name, params, Box::new(body), lvar), loc)
+        let info = BlockInfo::new(params, body, lvar);
+        Node::new(NodeKind::MethodDef(name, info), loc)
     }
 
     pub(crate) fn new_singleton_method_decl(
@@ -563,8 +560,9 @@ impl Node {
         loc: Loc,
     ) -> Self {
         let loc = body.loc().merge(loc);
+        let info = BlockInfo::new(params, body, lvar);
         Node::new(
-            NodeKind::SingletonMethodDef(Box::new(singleton), name, params, Box::new(body), lvar),
+            NodeKind::SingletonMethodDef(Box::new(singleton), name, info),
             loc,
         )
     }
@@ -578,14 +576,14 @@ impl Node {
         is_module: bool,
         loc: Loc,
     ) -> Self {
+        let info = BlockInfo::new(vec![], body, lvar);
         Node::new(
             NodeKind::ClassDef {
                 base: base.map(|node| Box::new(node)),
                 name,
                 superclass: superclass.map(|node| Box::new(node)),
-                body: Box::new(body),
+                info,
                 is_module,
-                lvar,
             },
             loc,
         )
@@ -597,11 +595,11 @@ impl Node {
         lvar: LvarCollector,
         loc: Loc,
     ) -> Self {
+        let info = BlockInfo::new(vec![], body, lvar);
         Node::new(
             NodeKind::SingletonClassDef {
                 singleton: Box::new(singleton),
-                body: Box::new(body),
-                lvar,
+                info
             },
             loc,
         )
