@@ -27,6 +27,7 @@ pub enum NodeKind {
     RegExp(Vec<Node>, bool),       // Vec<STRING>, is_constant_expr
 
     LocalVar(String),
+    DynamicLocalVar(usize, String),
     Ident(String),
     InstanceVar(String),
     GlobalVar(String),
@@ -81,12 +82,8 @@ pub enum NodeKind {
     Next(Box<Node>),
     Return(Box<Node>),
     Yield(ArgList),
-    MethodDef(String, BlockInfo), // id, params, body
-    SingletonMethodDef(
-        Box<Node>,
-        String,
-        BlockInfo
-    ), // singleton_class, id, params, body
+    MethodDef(String, BlockInfo),                     // id, params, body
+    SingletonMethodDef(Box<Node>, String, BlockInfo), // singleton_class, id, params, body
     ClassDef {
         base: Option<Box<Node>>,
         name: String,
@@ -476,6 +473,10 @@ impl Node {
         Node::new(NodeKind::LocalVar(name), loc)
     }
 
+    pub(crate) fn new_dynlvar(name: String, outer: usize, loc: Loc) -> Self {
+        Node::new(NodeKind::DynamicLocalVar(outer, name), loc)
+    }
+
     pub(crate) fn new_identifier(name: String, loc: Loc) -> Self {
         Node::new(NodeKind::Ident(name), loc)
     }
@@ -599,7 +600,7 @@ impl Node {
         Node::new(
             NodeKind::SingletonClassDef {
                 singleton: Box::new(singleton),
-                info
+                info,
             },
             loc,
         )

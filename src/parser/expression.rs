@@ -653,8 +653,12 @@ impl<'a> Parser<'a> {
                     let node = Node::new_identifier(name.clone(), loc);
                     return self.parse_function_args(node);
                 };
-                if self.is_local_var(&name) {
-                    Ok(Node::new_lvar(name, loc))
+                if let Some(outer) = self.is_local_var(&name) {
+                    Ok(if outer == 0 {
+                        Node::new_lvar(name, loc)
+                    } else {
+                        Node::new_dynlvar(name, outer, loc)
+                    })
                 } else {
                     // FUNCTION or COMMAND or LHS for assignment
                     let node = Node::new_identifier(name.to_string(), loc);
@@ -989,8 +993,10 @@ impl<'a> Parser<'a> {
     /// Check whether `lhs` is a local variable or not.
     fn check_lhs(&mut self, lhs: Node) -> Result<Node, LexerErr> {
         if let NodeKind::Ident(name) = lhs.kind {
-            self.add_local_var_if_new(&name);
-            return Ok(Node::new_lvar(name, lhs.loc));
+            return Ok(match self.add_local_var_if_new(&name) {
+                0 => Node::new_lvar(name, lhs.loc),
+                outer => Node::new_dynlvar(name, outer, lhs.loc),
+            });
         } else if let NodeKind::Const { .. } = lhs.kind {
             for c in self.context_stack.iter().rev() {
                 match c.kind {

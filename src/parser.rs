@@ -125,18 +125,21 @@ impl<'a> Parser<'a> {
 
     /// If the `id` does not exist in the scope chain,
     /// add `id` as a local variable in the current context.
-    fn add_local_var_if_new(&mut self, name: &str) {
-        if !self.is_local_var(&name) {
+    fn add_local_var_if_new(&mut self, name: &str) -> usize {
+        if let Some(outer) = self.is_local_var(&name) {
+            return outer;
+        } else {
             for c in self.context_stack.iter_mut().rev() {
                 match c.kind {
                     ParseContextKind::For => {}
                     _ => {
                         c.lvar.insert(name);
-                        return;
+                        return 0;
                     }
                 };
             }
         }
+        unreachable!()
     }
 
     /// Add the `id` as a new parameter in the current context.
@@ -181,24 +184,27 @@ impl<'a> Parser<'a> {
 
     /// Examine whether `id` exists in the scope chain.
     /// If exiets, return true.
-    fn is_local_var(&mut self, id: &str) -> bool {
+    fn is_local_var(&mut self, id: &str) -> Option<usize> {
+        let mut outer = 0;
         for c in self.context_stack.iter().rev() {
             if c.lvar.table.get_lvarid(id).is_some() {
-                return true;
+                return Some(outer);
             }
             match c.kind {
-                ParseContextKind::Block | ParseContextKind::For => {}
-                _ => return false,
+                ParseContextKind::Block => outer += 1,
+                ParseContextKind::For => {}
+                _ => return None,
             }
         }
         let mut ctx = self.extern_context;
         while let Some(a) = ctx {
             if a.get_lvarid(id).is_some() {
-                return true;
+                return Some(outer);
             };
+            outer += 1;
             ctx = a.outer();
         }
-        false
+        None
     }
 
     /// Peek next token (skipping line terminators).
