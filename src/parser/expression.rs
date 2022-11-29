@@ -62,13 +62,13 @@ impl<'a> Parser<'a> {
                 let loc = self.prev_loc();
                 let cond = self.parse_expr()?;
                 let loc = loc.merge(self.prev_loc());
-                node = Node::new_while(cond, node, true, loc);
+                node = Node::new_while_postfix(cond, node, true, loc);
             } else if self.consume_reserved_no_skip_line_term(Reserved::Until)? {
                 // STMT : STMT until EXPR
                 let loc = self.prev_loc();
                 let cond = self.parse_expr()?;
                 let loc = loc.merge(self.prev_loc());
-                node = Node::new_while(cond, node, false, loc);
+                node = Node::new_while_postfix(cond, node, false, loc);
             } else if self.consume_reserved_no_skip_line_term(Reserved::Rescue)? {
                 // STMT : STMT rescue EXPR
                 let rescue = self.parse_expr()?;

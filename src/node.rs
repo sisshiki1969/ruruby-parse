@@ -65,6 +65,7 @@ pub enum NodeKind {
         cond: Box<Node>,
         body: Box<Node>,
         cond_op: bool, // true: While, false: Until
+        postfix: bool, // true: do .. while *cond*  false: while *cond* do .. end
     },
     Case {
         cond: Option<Box<Node>>,
@@ -684,6 +685,20 @@ impl Node {
                 cond: Box::new(cond),
                 body: Box::new(body),
                 cond_op,
+                postfix: false,
+            },
+            loc,
+        )
+    }
+
+    pub(crate) fn new_while_postfix(cond: Node, body: Node, cond_op: bool, loc: Loc) -> Self {
+        let loc = loc.merge(body.loc());
+        Node::new(
+            NodeKind::While {
+                cond: Box::new(cond),
+                body: Box::new(body),
+                cond_op,
+                postfix: true,
             },
             loc,
         )
