@@ -174,6 +174,13 @@ impl FormalParam {
     pub(crate) fn delegeate(loc: Loc) -> Self {
         FormalParam::new(ParamKind::Delegate, loc)
     }
+
+    pub(crate) fn destruct_param(params: Vec<(String, Loc)>) -> Self {
+        let loc = params
+            .iter()
+            .fold(params[0].1, |acc, elem| acc.merge(elem.1));
+        FormalParam::new(ParamKind::Destruct(params), loc)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -187,6 +194,7 @@ pub enum ParamKind {
     KWRest(String),
     Block(String),
     Delegate,
+    Destruct(Vec<(String, Loc)>),
 }
 
 impl std::default::Default for ParamKind {

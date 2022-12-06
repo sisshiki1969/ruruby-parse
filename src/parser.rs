@@ -509,14 +509,17 @@ impl<'a> Parser<'a> {
         let terminator = terminator.into();
         let mut args = vec![];
         let mut state = Kind::Required;
-        if let Some(term) = terminator {
-            if self.consume_punct(term)? {
-                return Ok(args);
-            }
-        }
+
         loop {
+            if let Some(term) = terminator {
+                if self.consume_punct(term)? {
+                    return Ok(args);
+                }
+            }
             let mut loc = self.loc();
-            if self.consume_punct(Punct::Range3)? {
+            if self.consume_punct(Punct::LParen)? {
+                args.push(self.parse_destruct_param()?);
+            } else if self.consume_punct(Punct::Range3)? {
                 // Argument delegation
                 if state > Kind::Required {
                     return Err(error_unexpected(
@@ -634,14 +637,39 @@ impl<'a> Parser<'a> {
                     }
                 };
             }
-            if !self.consume_punct_no_term(Punct::Comma)? {
-                break;
+            match terminator {
+                Some(_) => {
+                    if !self.consume_punct(Punct::Comma)? {
+                        break;
+                    }
+                }
+                None => {
+                    if !self.consume_punct_no_term(Punct::Comma)? {
+                        break;
+                    }
+                }
             }
         }
         if let Some(term) = terminator {
             self.expect_punct(term)?;
         }
         Ok(args)
+    }
+
+    fn parse_destruct_param(&mut self) -> Result<FormalParam, LexerErr> {
+        let loc = self.loc();
+        let mut idents = vec![(self.expect_ident()?, loc)];
+        while self.consume_punct(Punct::Comma)? {
+            if self.consume_punct(Punct::RParen)? {
+                return Ok(FormalParam::destruct_param(idents));
+            }
+            let loc = self.loc();
+            let name = self.expect_ident()?;
+            self.new_param(name.clone(), loc)?;
+            idents.push((name, loc));
+        }
+        self.expect_punct(Punct::RParen)?;
+        Ok(FormalParam::destruct_param(idents))
     }
 }
 
@@ -775,4 +803,68 @@ pub enum NReal {
     Integer(i64),
     Bignum(BigInt),
     Float(f64),
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn parse_test(code: &str) {
+        let node = Parser::new(
+            code,
+            std::path::PathBuf::new(),
+            None,
+            ParseContext::new_eval(None),
+        )
+        .unwrap()
+        .0;
+        dbg!(node);
+    }
+
+    fn parse_test_err(code: &str) {
+        Parser::new(
+            code,
+            std::path::PathBuf::new(),
+            None,
+            ParseContext::new_eval(None),
+        )
+        .unwrap_err();
+    }
+
+    #[test]
+    fn test() {
+        parse_test("1.times {|x,y|}");
+        parse_test("1.times {|x,|}");
+        parse_test("1.times {|x,(y,z)|}");
+        parse_test("1.times {|x,(y,z,),|}");
+        parse_test_err("1.times {|x,(y,z|}");
+        parse_test_err("1.times {|x,(y,z)}");
+
+        parse_test(
+            r#"1.times {|x
+            ,(y,z,),|}"#,
+        );
+        parse_test(
+            r#"1.times {|x
+            ,(y
+                ,z,),|}"#,
+        );
+        parse_test(
+            r#"
+            def f y,z
+            end"#,
+        );
+        parse_test(
+            r#"
+            def f y,
+            z
+            end"#,
+        );
+        parse_test_err(
+            r#"
+            def f y
+            ,z
+            end"#,
+        );
+    }
 }
