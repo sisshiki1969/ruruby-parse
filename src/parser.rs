@@ -658,7 +658,9 @@ impl<'a> Parser<'a> {
 
     fn parse_destruct_param(&mut self) -> Result<FormalParam, LexerErr> {
         let loc = self.loc();
-        let mut idents = vec![(self.expect_ident()?, loc)];
+        let name = self.expect_ident()?;
+        self.new_param(name.clone(), loc)?;
+        let mut idents = vec![(name, loc)];
         while self.consume_punct(Punct::Comma)? {
             if self.consume_punct(Punct::RParen)? {
                 return Ok(FormalParam::destruct_param(idents));
