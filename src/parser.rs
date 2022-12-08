@@ -574,7 +574,11 @@ impl<'a> Parser<'a> {
                 let name = self.expect_ident()?;
                 if self.consume_punct(Punct::Assign)? {
                     // Optional param
-                    let default = self.parse_arg()?;
+                    let default = if let Some(Punct::BitOr) = terminator {
+                        self.parse_primary(true)?
+                    } else {
+                        self.parse_arg()?
+                    };
                     loc = loc.merge(self.prev_loc());
                     match state {
                         Kind::Required => state = Kind::Optional,
