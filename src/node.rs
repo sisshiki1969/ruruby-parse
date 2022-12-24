@@ -215,6 +215,8 @@ pub struct ArgList {
     pub block: Option<Box<Node>>,
     /// args delegate
     pub delegate: bool,
+    /// has splat argument
+    pub splat: bool,
 }
 
 impl ArgList {
@@ -225,6 +227,7 @@ impl ArgList {
             hash_splat: vec![],
             block: None,
             delegate: false,
+            splat: false,
         }
     }
 
@@ -235,6 +238,7 @@ impl ArgList {
             hash_splat: vec![],
             block: Some(block),
             delegate: false,
+            splat: false,
         }
     }
 }

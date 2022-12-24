@@ -856,6 +856,7 @@ impl<'a> Parser<'a> {
                 // splat argument
                 let loc = self.prev_loc();
                 let array = self.parse_arg()?;
+                arglist.splat = true;
                 arglist.args.push(Node::new_splat(array, loc));
             } else if self.consume_punct(Punct::DMul)? {
                 // double splat argument
