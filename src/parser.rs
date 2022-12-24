@@ -574,7 +574,11 @@ impl<'a> Parser<'a> {
                 let name = self.expect_ident()?;
                 if self.consume_punct(Punct::Assign)? {
                     // Optional param
-                    let default = self.parse_arg()?;
+                    let default = if let Some(Punct::BitOr) = terminator {
+                        self.parse_primary(true)?
+                    } else {
+                        self.parse_arg()?
+                    };
                     loc = loc.merge(self.prev_loc());
                     match state {
                         Kind::Required => state = Kind::Optional,
@@ -658,7 +662,9 @@ impl<'a> Parser<'a> {
 
     fn parse_destruct_param(&mut self) -> Result<FormalParam, LexerErr> {
         let loc = self.loc();
-        let mut idents = vec![(self.expect_ident()?, loc)];
+        let name = self.expect_ident()?;
+        self.new_param(name.clone(), loc)?;
+        let mut idents = vec![(name, loc)];
         while self.consume_punct(Punct::Comma)? {
             if self.consume_punct(Punct::RParen)? {
                 return Ok(FormalParam::destruct_param(idents));
