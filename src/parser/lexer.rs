@@ -405,7 +405,7 @@ impl<'a> Lexer<'a> {
             }
             let mut id = ch as u32 - '0' as u32;
             while let Some(ch) = self.consume_numeric() {
-                id += ch as u32 - '0' as u32;
+                id = id * 10 + ch as u32 - '0' as u32;
             }
             Ok(self.new_special_var(id as usize + 100))
         } else {
