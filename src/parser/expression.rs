@@ -889,7 +889,7 @@ impl<'a> Parser<'a> {
                     return Ok(arglist);
                 }
                 match &node.kind {
-                    NodeKind::Ident(id, ..) | NodeKind::LocalVar(id) => {
+                    NodeKind::Ident(id, ..) | NodeKind::LocalVar(0, id) => {
                         if self.consume_punct_no_term(Punct::Colon)? {
                             // keyword args
                             arglist.kw_args.push((id.to_string(), self.parse_arg()?));

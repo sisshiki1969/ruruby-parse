@@ -26,8 +26,7 @@ pub enum NodeKind {
     Hash(Vec<(Node, Node)>, bool), // Vec<KEY, VALUE>, is_constant_expr
     RegExp(Vec<Node>, bool),       // Vec<STRING>, is_constant_expr
 
-    LocalVar(String),
-    DynamicLocalVar(usize, String),
+    LocalVar(usize, String),
     Ident(String),
     InstanceVar(String),
     GlobalVar(String),
@@ -483,11 +482,11 @@ impl Node {
     }
 
     pub(crate) fn new_lvar(name: String, loc: Loc) -> Self {
-        Node::new(NodeKind::LocalVar(name), loc)
+        Node::new(NodeKind::LocalVar(0, name), loc)
     }
 
     pub(crate) fn new_dynlvar(name: String, outer: usize, loc: Loc) -> Self {
-        Node::new(NodeKind::DynamicLocalVar(outer, name), loc)
+        Node::new(NodeKind::LocalVar(outer, name), loc)
     }
 
     pub(crate) fn new_identifier(name: String, loc: Loc) -> Self {
@@ -825,7 +824,7 @@ impl Node {
 
     pub(crate) fn as_method_name(&self) -> Option<String> {
         match &self.kind {
-            NodeKind::Const { name: id, .. } | NodeKind::Ident(id) | NodeKind::LocalVar(id) => {
+            NodeKind::Const { name: id, .. } | NodeKind::Ident(id) | NodeKind::LocalVar(0, id) => {
                 Some(id.clone())
             }
             _ => None,
