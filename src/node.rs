@@ -56,7 +56,7 @@ pub enum NodeKind {
         else_: Box<Node>,
     },
     For {
-        param: Vec<String>,
+        param: Vec<(usize, String)>,
         iter: Box<Node>,
         body: BlockInfo,
     },
@@ -481,11 +481,7 @@ impl Node {
         Node::new(NodeKind::Splat(Box::new(array)), loc)
     }
 
-    pub(crate) fn new_lvar(name: String, loc: Loc) -> Self {
-        Node::new(NodeKind::LocalVar(0, name), loc)
-    }
-
-    pub(crate) fn new_dynlvar(name: String, outer: usize, loc: Loc) -> Self {
+    pub(crate) fn new_lvar(name: String, outer: usize, loc: Loc) -> Self {
         Node::new(NodeKind::LocalVar(outer, name), loc)
     }
 
