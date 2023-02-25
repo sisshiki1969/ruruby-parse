@@ -75,8 +75,8 @@ impl<'a> Parser<'a> {
         let mut vars = vec![];
         loop {
             let name = self.expect_ident()?;
-            self.add_local_var_if_new(&name);
-            vars.push(name);
+            let outer = self.add_local_var_if_new(&name);
+            vars.push((outer, name));
             if !self.consume_punct(Punct::Comma)? {
                 break;
             }

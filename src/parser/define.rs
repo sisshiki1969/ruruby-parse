@@ -36,7 +36,10 @@ impl<'a> Parser<'a> {
                 } else if self.consume_punct_no_term(Punct::Dot)?
                     || self.consume_punct_no_term(Punct::Scope)?
                 {
-                    (Some(Node::new_lvar(s, loc)), self.read_method_name(true)?.0)
+                    (
+                        Some(Node::new_lvar(s, 0, loc)),
+                        self.read_method_name(true)?.0,
+                    )
                 } else {
                     (None, self.read_method_ext(s)?)
                 }
