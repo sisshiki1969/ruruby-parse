@@ -68,7 +68,7 @@ impl SourceInfo {
         let mut found = false;
         for line in &lines {
             if !found {
-                res_string += &format!("{}:{}\n", self.path.to_string_lossy(), line.line_no);
+                res_string += &format!("{}:{}\n", self.file_name(), line.line_no);
                 found = true;
             };
 
@@ -79,14 +79,13 @@ impl SourceInfo {
             }
             res_string += &code[start..=end];
             res_string.push('\n');
-            use std::cmp::*;
             let lead = if loc.0 <= line.top {
                 0
             } else {
                 console::measure_text_width(&code[start..loc.0])
             };
-            let range_start = max(loc.0, line.top);
-            let range_end = min(loc.1, line.end);
+            let range_start = std::cmp::max(loc.0, line.top);
+            let range_end = std::cmp::min(loc.1, line.end);
             let length = console::measure_text_width(&code[range_start..=range_end]);
             res_string += &" ".repeat(lead);
             res_string += &"^".repeat(length);
@@ -102,7 +101,7 @@ impl SourceInfo {
             let lead = console::measure_text_width(&code[line.1..loc.0]);
             let length = console::measure_text_width(&code[loc.0..loc.1]);
             let is_cr = loc.1 >= code.len() || self.get_next_char(loc.1) == Some('\n');
-            res_string += &format!("{}:{}\n", self.path.to_string_lossy(), line.0);
+            res_string += &format!("{}:{}\n", self.file_name(), line.0);
             res_string += if !is_cr {
                 &code[line.1..=loc.1]
             } else {
