@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{borrow::Cow, path::PathBuf};
 
 pub type SourceInfoRef = std::rc::Rc<SourceInfo>;
 
@@ -48,8 +48,8 @@ impl Default for SourceInfo {
 //
 impl SourceInfo {
     /// Get file name.
-    pub fn get_file_name(&self) -> String {
-        self.path.to_string_lossy().to_string()
+    pub fn file_name(&self) -> Cow<'_, str> {
+        self.path.to_string_lossy()
     }
 
     /// Show the location of *loc* in source text.
