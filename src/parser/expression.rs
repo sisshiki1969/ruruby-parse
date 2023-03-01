@@ -1019,6 +1019,7 @@ impl<'a> Parser<'a> {
                     Punct::Colon
                     | Punct::Plus
                     | Punct::Minus
+                    | Punct::Not
                     | Punct::Mul
                     | Punct::Div
                     | Punct::BitAnd
