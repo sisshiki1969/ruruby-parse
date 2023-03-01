@@ -1015,11 +1015,12 @@ impl<'a> Parser<'a> {
             match tok.kind {
                 TokenKind::LineTerm => false,
                 TokenKind::Punct(p) => match p {
-                    Punct::LParen | Punct::LBracket | Punct::Scope | Punct::Arrow => true,
+                    Punct::LParen | Punct::LBracket | Punct::Scope | Punct::Arrow | Punct::Not => {
+                        true
+                    }
                     Punct::Colon
                     | Punct::Plus
                     | Punct::Minus
-                    | Punct::Not
                     | Punct::Mul
                     | Punct::Div
                     | Punct::BitAnd
