@@ -230,6 +230,17 @@ impl ArgList {
         }
     }
 
+    pub fn from_args(args: Vec<Node>) -> Self {
+        ArgList {
+            args,
+            kw_args: vec![],
+            hash_splat: vec![],
+            block: None,
+            delegate: false,
+            splat: false,
+        }
+    }
+
     pub(crate) fn with_block(block: Box<Node>) -> Self {
         ArgList {
             args: vec![],
