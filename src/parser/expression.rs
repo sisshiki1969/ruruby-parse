@@ -933,7 +933,8 @@ impl<'a> Parser<'a> {
                     exception = self.parse_mul_assign_rhs(None)?;
                 };
                 if self.consume_punct_no_term(Punct::FatArrow)? {
-                    assign = Some(self.parse_arg()?);
+                    let lhs = self.parse_arg()?;
+                    assign = Some(self.check_lhs(lhs)?);
                 }
                 self.parse_then()?;
             };
