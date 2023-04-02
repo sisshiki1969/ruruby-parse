@@ -147,11 +147,11 @@ impl FormalParam {
     }
 
     pub(crate) fn rest(name: String, loc: Loc) -> Self {
-        FormalParam::new(ParamKind::Rest(name), loc)
+        FormalParam::new(ParamKind::Rest(Some(name)), loc)
     }
 
     pub(crate) fn rest_discard(loc: Loc) -> Self {
-        FormalParam::new(ParamKind::RestDiscard, loc)
+        FormalParam::new(ParamKind::Rest(None), loc)
     }
 
     pub(crate) fn post(name: String, loc: Loc) -> Self {
@@ -187,8 +187,7 @@ pub enum ParamKind {
     Param(String),
     Post(String),
     Optional(String, Box<Node>), // name, default expr
-    Rest(String),
-    RestDiscard,
+    Rest(Option<String>),
     Keyword(String, Option<Box<Node>>), // name, default expr
     KWRest(String),
     Block(String),
