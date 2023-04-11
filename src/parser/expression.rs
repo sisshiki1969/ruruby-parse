@@ -193,15 +193,13 @@ impl<'a> Parser<'a> {
     }
 
     pub(super) fn parse_arg(&mut self) -> Result<Node, LexerErr> {
-        if self.peek()?.kind == TokenKind::Reserved(Reserved::Defined) {
-            let save = self.save_state();
+        let next = self.peek()?;
+        if next.kind == TokenKind::Reserved(Reserved::Defined)
+            && self.lexer.has_trailing_space(&next)
+        {
             self.consume_reserved(Reserved::Defined).unwrap();
-            if self.peek_punct_no_term(Punct::LParen) {
-                self.restore_state(save);
-            } else {
-                let node = self.parse_arg()?;
-                return Ok(Node::new_defined(node));
-            }
+            let node = self.parse_arg()?;
+            return Ok(Node::new_defined(node));
         }
         self.parse_arg_assign()
     }
