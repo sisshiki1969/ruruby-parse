@@ -46,6 +46,8 @@ pub struct Parser<'a> {
     suppress_mul_assign: bool,
     /// this flag suppress parse do-end style block.
     suppress_do_block: bool,
+    /// defined? mode: allow invalid break/next.
+    defined_mode: bool,
 }
 
 impl<'a> Parser<'a> {
@@ -86,6 +88,7 @@ impl<'a> Parser<'a> {
             suppress_acc_assign: false,
             suppress_mul_assign: false,
             suppress_do_block: false,
+            defined_mode: false,
         };
         let node = parser.parse_comp_stmt()?;
         let lvar = parser.scope.pop().unwrap().lvar;
@@ -916,6 +919,8 @@ mod test {
         );
         parse_test_err("break");
         parse_test_err("next");
+        parse_test("defined? break");
+        parse_test("defined? next");
         parse_test_err(
             r#"
         def f

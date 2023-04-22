@@ -334,6 +334,7 @@ impl<'a> Parser<'a> {
             suppress_acc_assign: false,
             suppress_mul_assign: false,
             suppress_do_block: false,
+            defined_mode: false,
         }
     }
 }
