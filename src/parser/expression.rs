@@ -991,10 +991,10 @@ impl<'a> Parser<'a> {
             let outer = self.add_local_var_if_new(&name);
             return Ok(Node::new_lvar(name, outer, lhs.loc));
         } else if let NodeKind::Const { .. } = lhs.kind {
-            for c in self.context_stack.iter().rev() {
+            for c in self.scope.iter().rev() {
                 match c.kind {
-                    ParseContextKind::Class | ParseContextKind::Eval => return Ok(lhs),
-                    ParseContextKind::Method => {
+                    ScopeKind::Class | ScopeKind::Eval => return Ok(lhs),
+                    ScopeKind::Method => {
                         return Err(error_unexpected(lhs.loc(), "Dynamic constant assignment."))
                     }
                     _ => {}

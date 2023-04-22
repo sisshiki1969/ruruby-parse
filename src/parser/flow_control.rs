@@ -54,11 +54,15 @@ impl<'a> Parser<'a> {
         let old_suppress_do_flag = self.suppress_do_block;
         self.suppress_do_block = true;
         let loc = self.prev_loc();
+
+        self.loop_stack.push(LoopKind::While);
         let cond = self.parse_expr()?;
         self.suppress_do_block = old_suppress_do_flag;
         self.parse_do()?;
         let body = self.parse_comp_stmt()?;
         self.expect_reserved(Reserved::End)?;
+        self.loop_stack.pop().unwrap();
+
         let loc = loc.merge(self.prev_loc());
         Ok(Node::new_while(cond, body, is_while, loc))
     }
@@ -86,7 +90,8 @@ impl<'a> Parser<'a> {
         self.parse_do()?;
         let loc = self.prev_loc();
 
-        self.context_stack.push(ParseContext::new_for());
+        self.scope.push(LvarScope::new_for());
+        self.loop_stack.push(LoopKind::For);
         let body = self.parse_comp_stmt()?;
         let mut formal_params = vec![];
         for (i, _var) in vars.iter().enumerate() {
@@ -94,7 +99,8 @@ impl<'a> Parser<'a> {
             self.new_param(dummy_var.clone(), loc)?;
             formal_params.push(FormalParam::req_param(dummy_var, loc));
         }
-        let lvar = self.context_stack.pop().unwrap().lvar;
+        self.loop_stack.pop().unwrap();
+        let lvar = self.scope.pop().unwrap().lvar;
 
         let loc = loc.merge(self.prev_loc());
         let body = BlockInfo::new(formal_params, body, lvar);
@@ -144,11 +150,23 @@ impl<'a> Parser<'a> {
     }
 
     pub(super) fn parse_break(&mut self) -> Result<Node, LexerErr> {
+        if !self.is_breakable() {
+            return Err(LexerErr(
+                ParseErrKind::SyntaxError("Invalid break".to_string()),
+                self.prev_loc(),
+            ));
+        }
         let (node, loc) = self.parse_break_sub()?;
         Ok(Node::new_break(node, loc))
     }
 
     pub(super) fn parse_next(&mut self) -> Result<Node, LexerErr> {
+        if !self.is_breakable() {
+            return Err(LexerErr(
+                ParseErrKind::SyntaxError("Invalid next".to_string()),
+                self.prev_loc(),
+            ));
+        }
         let (node, loc) = self.parse_break_sub()?;
         Ok(Node::new_next(node, loc))
     }

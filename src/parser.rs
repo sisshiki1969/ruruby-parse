@@ -35,9 +35,10 @@ pub struct Parser<'a> {
     lexer: Lexer<'a>,
     path: PathBuf,
     prev_loc: Loc,
-    context_stack: Vec<ParseContext>,
-    /// identifier table.
-    //id_store: IdentifierTable,
+    /// scope stack.
+    scope: Vec<LvarScope>,
+    /// loop stack.
+    loop_stack: Vec<LoopKind>,
     extern_context: Option<DummyFrame>,
     /// this flag suppress accesory assignment. e.g. x=3
     suppress_acc_assign: bool,
@@ -50,7 +51,7 @@ pub struct Parser<'a> {
 impl<'a> Parser<'a> {
     pub fn parse_program(code: String, path: impl Into<PathBuf>) -> Result<ParseResult, ParseErr> {
         let path = path.into();
-        let parse_ctx = ParseContext::new_eval(None);
+        let parse_ctx = LvarScope::new_eval(None);
         parse(code, path, None, parse_ctx)
     }
 }
@@ -62,7 +63,7 @@ impl<'a> Parser<'a> {
         context: Option<LvarCollector>,
         extern_context: Option<DummyFrame>,
     ) -> Result<ParseResult, ParseErr> {
-        let parse_ctx = ParseContext::new_block(context);
+        let parse_ctx = LvarScope::new_block(context);
         parse(code, path, extern_context, parse_ctx)
     }
 }
@@ -72,22 +73,22 @@ impl<'a> Parser<'a> {
         code: &'a str,
         path: PathBuf,
         extern_context: Option<DummyFrame>,
-        parse_context: ParseContext,
+        scope: LvarScope,
     ) -> Result<(Node, LvarCollector, Token), LexerErr> {
         let lexer = Lexer::new(code);
         let mut parser = Parser {
             lexer,
             path,
             prev_loc: Loc(0, 0),
-            context_stack: vec![parse_context],
-            //id_store,
+            scope: vec![scope],
+            loop_stack: vec![LoopKind::Top],
             extern_context,
             suppress_acc_assign: false,
             suppress_mul_assign: false,
             suppress_do_block: false,
         };
         let node = parser.parse_comp_stmt()?;
-        let lvar = parser.context_stack.pop().unwrap().lvar;
+        let lvar = parser.scope.pop().unwrap().lvar;
         let tok = parser.peek()?;
         Ok((node, lvar, tok))
     }
@@ -100,19 +101,30 @@ impl<'a> Parser<'a> {
         self.lexer.restore_state(state);
     }
 
-    fn context_mut(&mut self) -> &mut ParseContext {
-        self.context_stack.last_mut().unwrap()
+    fn scope_mut(&mut self) -> &mut LvarScope {
+        self.scope.last_mut().unwrap()
     }
 
     fn is_method_context(&self) -> bool {
-        self.context_stack.last().unwrap().kind == ParseContextKind::Method
+        for scope in self.scope.iter().rev() {
+            match scope.kind {
+                ScopeKind::Method => return true,
+                ScopeKind::Class | ScopeKind::Eval => return false,
+                ScopeKind::Block | ScopeKind::For => {}
+            }
+        }
+        unreachable!()
+    }
+
+    fn is_breakable(&self) -> bool {
+        self.loop_stack.last() != Some(&LoopKind::Top)
     }
 
     /// Check whether parameter delegation exists or not in the method def of current context.
     /// If not, return ParseErr.
     fn check_delegate(&self) -> Result<(), LexerErr> {
-        for ctx in self.context_stack.iter().rev() {
-            if ctx.kind == ParseContextKind::Method {
+        for ctx in self.scope.iter().rev() {
+            if ctx.kind == ScopeKind::Method {
                 if ctx.lvar.delegate_param.is_some() {
                     return Ok(());
                 } else {
@@ -129,9 +141,9 @@ impl<'a> Parser<'a> {
         if let Some(outer) = self.is_local_var(&name) {
             return outer;
         } else {
-            for c in self.context_stack.iter_mut().rev() {
+            for c in self.scope.iter_mut().rev() {
                 match c.kind {
-                    ParseContextKind::For => {}
+                    ScopeKind::For => {}
                     _ => {
                         c.lvar.insert(name);
                         return 0;
@@ -145,20 +157,20 @@ impl<'a> Parser<'a> {
     /// Add the `id` as a new parameter in the current context.
     /// If a parameter with the same name already exists, return error.
     fn new_param(&mut self, name: String, loc: Loc) -> Result<LvarId, LexerErr> {
-        match self.context_mut().lvar.insert_new(name) {
+        match self.scope_mut().lvar.insert_new(name) {
             Some(lvar) => Ok(lvar),
             None => Err(error_unexpected(loc, "Duplicated argument name.")),
         }
     }
 
     fn add_kw_param(&mut self, lvar: LvarId) {
-        self.context_mut().lvar.kw.push(lvar);
+        self.scope_mut().lvar.kw.push(lvar);
     }
 
     /// Add the `id` as a new parameter in the current context.
     /// If a parameter with the same name already exists, return error.
     fn new_kwrest_param(&mut self, name: String, loc: Loc) -> Result<(), LexerErr> {
-        if self.context_mut().lvar.insert_kwrest_param(name).is_none() {
+        if self.scope_mut().lvar.insert_kwrest_param(name).is_none() {
             return Err(error_unexpected(loc, "Duplicated argument name."));
         }
         Ok(())
@@ -167,7 +179,7 @@ impl<'a> Parser<'a> {
     /// Add the `id` as a new block parameter in the current context.
     /// If a parameter with the same name already exists, return error.
     fn new_block_param(&mut self, name: String, loc: Loc) -> Result<(), LexerErr> {
-        if self.context_mut().lvar.insert_block_param(name).is_none() {
+        if self.scope_mut().lvar.insert_block_param(name).is_none() {
             return Err(error_unexpected(loc, "Duplicated argument name."));
         }
         Ok(())
@@ -176,7 +188,7 @@ impl<'a> Parser<'a> {
     /// Add the `id` as a new block parameter in the current context.
     /// If a parameter with the same name already exists, return error.
     fn new_delegate_param(&mut self, loc: Loc) -> Result<(), LexerErr> {
-        if self.context_mut().lvar.insert_delegate_param().is_none() {
+        if self.scope_mut().lvar.insert_delegate_param().is_none() {
             return Err(error_unexpected(loc, "Duplicated argument name."));
         }
         Ok(())
@@ -186,13 +198,13 @@ impl<'a> Parser<'a> {
     /// If exiets, return true.
     fn is_local_var(&mut self, id: &str) -> Option<usize> {
         let mut outer = 0;
-        for c in self.context_stack.iter().rev() {
+        for c in self.scope.iter().rev() {
             if c.lvar.table.get_lvarid(id).is_some() {
                 return Some(outer);
             }
             match c.kind {
-                ParseContextKind::Block => outer += 1,
-                ParseContextKind::For => {}
+                ScopeKind::Block => outer += 1,
+                ScopeKind::For => {}
                 _ => return None,
             }
         }
@@ -409,7 +421,8 @@ impl<'a> Parser<'a> {
             };
         // BLOCK: do [`|' [BLOCK_VAR] `|'] COMPSTMT end
         let loc = self.prev_loc();
-        self.context_stack.push(ParseContext::new_block(None));
+        self.scope.push(LvarScope::new_block(None));
+        self.loop_stack.push(LoopKind::Block);
 
         let params = if self.consume_punct(Punct::BitOr)? {
             self.parse_formal_params(Punct::BitOr)?
@@ -424,7 +437,9 @@ impl<'a> Parser<'a> {
         } else {
             self.expect_punct(Punct::RBrace)?;
         };
-        let lvar = self.context_stack.pop().unwrap().lvar;
+
+        self.loop_stack.pop().unwrap();
+        let lvar = self.scope.pop().unwrap().lvar;
         let loc = loc.merge(self.prev_loc());
         let node = Node::new_lambda(params, body, lvar, loc);
         self.suppress_mul_assign = old_suppress_mul_flag;
@@ -691,7 +706,7 @@ fn parse(
     code: String,
     path: PathBuf,
     extern_context: Option<DummyFrame>,
-    parse_context: ParseContext,
+    parse_context: LvarScope,
 ) -> Result<ParseResult, ParseErr> {
     match Parser::new(&code, path.clone(), extern_context, parse_context) {
         Ok((node, lvar_collector, tok)) => {
@@ -724,7 +739,15 @@ pub struct ParseResult {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-enum ParseContextKind {
+enum LoopKind {
+    Top,
+    Block,
+    While,
+    For,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum ScopeKind {
     Eval,
     Class,
     Method,
@@ -733,45 +756,44 @@ enum ParseContextKind {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-struct ParseContext {
+struct LvarScope {
+    kind: ScopeKind,
     lvar: LvarCollector,
-    kind: ParseContextKind,
-    //name: Option<IdentId>,
 }
 
-impl ParseContext {
+impl LvarScope {
     fn new_method() -> Self {
-        ParseContext {
+        LvarScope {
             lvar: LvarCollector::new(),
-            kind: ParseContextKind::Method,
+            kind: ScopeKind::Method,
         }
     }
 
     fn new_eval(lvar_collector: Option<LvarCollector>) -> Self {
-        ParseContext {
+        LvarScope {
             lvar: lvar_collector.unwrap_or_default(),
-            kind: ParseContextKind::Eval,
+            kind: ScopeKind::Eval,
         }
     }
 
     fn new_class(lvar_collector: Option<LvarCollector>) -> Self {
-        ParseContext {
+        LvarScope {
             lvar: lvar_collector.unwrap_or_default(),
-            kind: ParseContextKind::Class,
+            kind: ScopeKind::Class,
         }
     }
 
     fn new_block(lvar_collector: Option<LvarCollector>) -> Self {
-        ParseContext {
+        LvarScope {
             lvar: lvar_collector.unwrap_or_default(),
-            kind: ParseContextKind::Block,
+            kind: ScopeKind::Block,
         }
     }
 
     fn new_for() -> Self {
-        ParseContext {
+        LvarScope {
             lvar: LvarCollector::new(),
-            kind: ParseContextKind::For,
+            kind: ScopeKind::For,
         }
     }
 }
@@ -820,7 +842,7 @@ mod test {
             code,
             std::path::PathBuf::new(),
             None,
-            ParseContext::new_eval(None),
+            LvarScope::new_eval(None),
         )
         .unwrap()
         .0;
@@ -832,7 +854,7 @@ mod test {
             code,
             std::path::PathBuf::new(),
             None,
-            ParseContext::new_eval(None),
+            LvarScope::new_eval(None),
         )
         .unwrap_err();
     }
@@ -871,6 +893,42 @@ mod test {
             def f y
             ,z
             end"#,
+        );
+    }
+
+    #[test]
+    fn test_err() {
+        parse_test_err(
+            r#"
+        def f
+          class C; end
+        end
+        "#,
+        );
+        parse_test_err(
+            r#"
+        def f
+          1.times do
+            class C; end
+          end
+        end
+        "#,
+        );
+        parse_test_err("break");
+        parse_test_err("next");
+        parse_test_err(
+            r#"
+        def f
+          break
+        end
+        "#,
+        );
+        parse_test_err(
+            r#"
+        def f
+          next
+        end
+        "#,
         );
     }
 }

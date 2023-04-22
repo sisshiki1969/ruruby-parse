@@ -60,10 +60,13 @@ impl<'a> Parser<'a> {
             _ => return Err(error_unexpected(loc, "Invalid method name.")),
         };
 
-        self.context_stack.push(ParseContext::new_method());
+        self.scope.push(LvarScope::new_method());
+        self.loop_stack.push(LoopKind::Top);
         let args = self.parse_def_params()?;
         let body = self.parse_begin()?;
-        let lvar = self.context_stack.pop().unwrap().lvar;
+        self.loop_stack.pop().unwrap();
+        let lvar = self.scope.pop().unwrap().lvar;
+
         let decl = match singleton {
             Some(singleton) => {
                 Node::new_singleton_method_decl(singleton, name, args, body, lvar, def_loc)
@@ -118,9 +121,13 @@ impl<'a> Parser<'a> {
             None
         };
         self.consume_term()?;
-        self.context_stack.push(ParseContext::new_class(None));
+
+        self.scope.push(LvarScope::new_class(None));
+        self.loop_stack.push(LoopKind::Top);
         let body = self.parse_begin()?;
-        let lvar = self.context_stack.pop().unwrap().lvar;
+        self.loop_stack.pop().unwrap();
+        let lvar = self.scope.pop().unwrap().lvar;
+
         Ok(Node::new_class_decl(
             base, name, superclass, body, lvar, is_module, loc,
         ))
@@ -134,9 +141,13 @@ impl<'a> Parser<'a> {
         let singleton = self.parse_expr()?;
         let loc = loc.merge(self.prev_loc());
         self.consume_term()?;
-        self.context_stack.push(ParseContext::new_class(None));
+
+        self.scope.push(LvarScope::new_class(None));
+        self.loop_stack.push(LoopKind::Top);
         let body = self.parse_begin()?;
-        let lvar = self.context_stack.pop().unwrap().lvar;
+        self.loop_stack.pop().unwrap();
+        let lvar = self.scope.pop().unwrap().lvar;
+
         Ok(Node::new_singleton_class_decl(singleton, body, lvar, loc))
     }
 

@@ -266,7 +266,9 @@ impl<'a> Parser<'a> {
     pub(super) fn parse_lambda_literal(&mut self) -> Result<Node, LexerErr> {
         // Lambda literal
         let loc = self.prev_loc();
-        self.context_stack.push(ParseContext::new_block(None));
+
+        self.scope.push(LvarScope::new_block(None));
+        self.loop_stack.push(LoopKind::Block);
         let peek = self.peek()?.kind;
         let params = if peek == TokenKind::Punct(Punct::LBrace)
             || peek == TokenKind::Reserved(Reserved::Do)
@@ -293,7 +295,9 @@ impl<'a> Parser<'a> {
                 format!("Expected 'do' or '{{'. Actual:{:?}", tok.kind),
             ));
         };
-        let lvar = self.context_stack.pop().unwrap().lvar;
+        self.loop_stack.pop().unwrap();
+        let lvar = self.scope.pop().unwrap().lvar;
+
         Ok(Node::new_lambda(params, body, lvar, loc))
     }
 
@@ -324,7 +328,8 @@ impl<'a> Parser<'a> {
             lexer,
             path: self.path.clone(),
             prev_loc: Loc(0, 0),
-            context_stack: vec![],
+            scope: vec![],
+            loop_stack: vec![],
             extern_context: None,
             suppress_acc_assign: false,
             suppress_mul_assign: false,
