@@ -116,7 +116,7 @@ impl<'a> Parser<'a> {
                 ScopeKind::Block | ScopeKind::For => {}
             }
         }
-        unreachable!()
+        false
     }
 
     fn is_breakable(&self) -> bool {
