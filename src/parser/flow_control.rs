@@ -171,6 +171,17 @@ impl<'a> Parser<'a> {
         Ok(Node::new_next(node, loc))
     }
 
+    pub(super) fn parse_redo(&mut self) -> Result<Node, LexerErr> {
+        if !self.defined_mode && !self.is_breakable() {
+            return Err(LexerErr(
+                ParseErrKind::SyntaxError("Invalid redo".to_string()),
+                self.prev_loc(),
+            ));
+        }
+        let (node, loc) = self.parse_break_sub()?;
+        Ok(Node::new_redo(node, loc))
+    }
+
     fn parse_break_sub(&mut self) -> Result<(Node, Loc), LexerErr> {
         let loc = self.prev_loc();
         let tok = self.peek_no_term()?;

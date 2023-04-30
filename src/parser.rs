@@ -919,8 +919,10 @@ mod test {
         );
         parse_test_err("break");
         parse_test_err("next");
+        parse_test_err("redo");
         parse_test("defined? break");
         parse_test("defined? next");
+        parse_test("defined? redo");
         parse_test_err(
             r#"
         def f

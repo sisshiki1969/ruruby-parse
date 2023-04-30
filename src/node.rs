@@ -80,6 +80,7 @@ pub enum NodeKind {
     Lambda(BlockInfo),
     Break(Box<Node>),
     Next(Box<Node>),
+    Redo(Box<Node>),
     Return(Box<Node>),
     Yield(ArgList),
     MethodDef(String, BlockInfo),                     // id, params, body
@@ -776,6 +777,10 @@ impl Node {
 
     pub(crate) fn new_next(val: Node, loc: Loc) -> Self {
         Node::new(NodeKind::Next(Box::new(val)), loc)
+    }
+
+    pub(crate) fn new_redo(val: Node, loc: Loc) -> Self {
+        Node::new(NodeKind::Redo(Box::new(val)), loc)
     }
 
     pub(crate) fn new_return(val: Node, loc: Loc) -> Self {
