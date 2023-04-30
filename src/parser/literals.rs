@@ -105,7 +105,8 @@ impl<'a> Parser<'a> {
                 }
                 'r' => {
                     let ary = vec![Node::new_string(content, loc)];
-                    Ok(Node::new_regexp(ary, "".to_string(), tok.loc))
+                    let op = self.lexer.check_postfix();
+                    Ok(Node::new_regexp(ary, op, tok.loc))
                 }
                 _ => Err(error_unexpected(loc, "Unsupported % notation.")),
             }

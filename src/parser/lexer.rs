@@ -854,7 +854,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// Convert postfix of regular expression.
-    fn check_postfix(&mut self) -> String {
+    pub(crate) fn check_postfix(&mut self) -> String {
         let mut s = "m".to_string();
         loop {
             if self.consume('i') {
