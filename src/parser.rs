@@ -897,6 +897,13 @@ mod test {
             ,z
             end"#,
         );
+        parse_test(
+            r#"
+        for i in 0..5
+            redo
+        end
+        "#,
+        );
     }
 
     #[test]
@@ -920,6 +927,13 @@ mod test {
         parse_test_err("break");
         parse_test_err("next");
         parse_test_err("redo");
+        parse_test_err(
+            r#"
+        for i in 0..5
+            redo 5
+        end
+        "#,
+        );
         parse_test("defined? break");
         parse_test("defined? next");
         parse_test("defined? redo");

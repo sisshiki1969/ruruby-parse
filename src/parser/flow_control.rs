@@ -178,8 +178,8 @@ impl<'a> Parser<'a> {
                 self.prev_loc(),
             ));
         }
-        let (node, loc) = self.parse_break_sub()?;
-        Ok(Node::new_redo(node, loc))
+        let loc = self.prev_loc();
+        Ok(Node::new_redo(loc))
     }
 
     fn parse_break_sub(&mut self) -> Result<(Node, Loc), LexerErr> {
