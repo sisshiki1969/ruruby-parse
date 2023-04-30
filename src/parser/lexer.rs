@@ -862,7 +862,7 @@ impl<'a> Lexer<'a> {
                 s.push('i');
             } else if self.consume('m') {
                 // match "." for newline
-                //s.push('m');
+                s.push('s');
             } else if self.consume('x') {
                 // free format mode
                 s.push('x');
@@ -871,10 +871,8 @@ impl<'a> Lexer<'a> {
                 s.push('o');
             } else if self.consume('u') {
                 // Encoding+ utf-8
-                //s.push('-');
             } else if self.consume('n') {
                 // Encoding+ ASCII-8bit
-                //s.push('-');
             } else {
                 break;
             };
