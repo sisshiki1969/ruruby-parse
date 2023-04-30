@@ -854,28 +854,32 @@ impl<'a> Lexer<'a> {
     }
 
     /// Convert postfix of regular expression.
-    fn check_postfix(&mut self, s: &mut String) {
-        if self.consume('i') {
-            // ignore case
-            s.push('i');
-        } else if self.consume('m') {
-            // match "." for newline
-            s.push('m');
-        } else if self.consume('x') {
-            // free format mode
-            s.push('x');
-        } else if self.consume('o') {
-            // expand "#{}" only once
-            s.push('o');
-        } else if self.consume('u') {
-            // Encoding+ utf-8
-            s.push('-');
-        } else if self.consume('n') {
-            // Encoding+ ASCII-8bit
-            s.push('-');
-        } else {
-            s.push('-');
-        };
+    fn check_postfix(&mut self) -> String {
+        let mut s = "m".to_string();
+        loop {
+            if self.consume('i') {
+                // ignore case
+                s.push('i');
+            } else if self.consume('m') {
+                // match "." for newline
+                //s.push('m');
+            } else if self.consume('x') {
+                // free format mode
+                s.push('x');
+            } else if self.consume('o') {
+                // expand "#{}" only once
+                s.push('o');
+            } else if self.consume('u') {
+                // Encoding+ utf-8
+                //s.push('-');
+            } else if self.consume('n') {
+                // Encoding+ ASCII-8bit
+                //s.push('-');
+            } else {
+                break;
+            };
+        }
+        s
     }
 
     /// Scan as regular expression.
@@ -885,8 +889,8 @@ impl<'a> Lexer<'a> {
         loop {
             match self.get()? {
                 '/' => {
-                    self.check_postfix(&mut s);
-                    return Ok(InterpolateState::FinishedRegex(s, "".to_string()));
+                    let op = self.check_postfix();
+                    return Ok(InterpolateState::FinishedRegex(s, op));
                 }
                 '[' => {
                     char_class += 1;
