@@ -51,6 +51,7 @@ pub(crate) enum TokenKind {
     FloatLit(f64),
     ImaginaryLit(NReal),
     StringLit(String),
+    Regex(String, String),
     CommandLit(String),
     Reserved(Reserved),
     Punct(Punct),

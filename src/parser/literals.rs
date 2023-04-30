@@ -104,8 +104,8 @@ impl<'a> Parser<'a> {
                     Ok(Node::new_array(ary, tok.loc))
                 }
                 'r' => {
-                    let ary = vec![Node::new_string(content + "-", loc)];
-                    Ok(Node::new_regexp(ary, tok.loc))
+                    let ary = vec![Node::new_string(content, loc)];
+                    Ok(Node::new_regexp(ary, "".to_string(), tok.loc))
                 }
                 _ => Err(error_unexpected(loc, "Unsupported % notation.")),
             }
@@ -237,9 +237,10 @@ impl<'a> Parser<'a> {
         let start_loc = self.prev_loc();
         let tok = self.lexer.get_regexp()?;
         let mut nodes = match tok.kind {
-            TokenKind::StringLit(s) => {
+            TokenKind::Regex(s, op) => {
                 return Ok(Node::new_regexp(
                     vec![Node::new_string(s, tok.loc)],
+                    op,
                     tok.loc,
                 ));
             }
@@ -251,9 +252,9 @@ impl<'a> Parser<'a> {
             let tok = self.lexer.get_regexp()?;
             let loc = tok.loc();
             match tok.kind {
-                TokenKind::StringLit(s) => {
+                TokenKind::Regex(s, op) => {
                     nodes.push(Node::new_string(s, loc));
-                    return Ok(Node::new_regexp(nodes, start_loc.merge(loc)));
+                    return Ok(Node::new_regexp(nodes, op, start_loc.merge(loc)));
                 }
                 TokenKind::OpenRegex(s) => {
                     nodes.push(Node::new_string(s, loc));

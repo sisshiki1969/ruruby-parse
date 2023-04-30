@@ -51,6 +51,7 @@ enum VarKind {
 #[derive(Debug, Clone, PartialEq)]
 enum InterpolateState {
     Finished(String),
+    FinishedRegex(String, String),
     NewInterpolation(String, usize), // (string, paren_level)
 }
 
@@ -178,8 +179,9 @@ impl<'a> Lexer<'a> {
     /// Get token as a regular expression.
     pub(crate) fn get_regexp(&mut self) -> Result<Token, LexerErr> {
         match self.read_regexp_sub()? {
-            InterpolateState::Finished(s) => Ok(self.new_stringlit(s)),
+            InterpolateState::FinishedRegex(s, op) => Ok(self.new_regexlit(s, op)),
             InterpolateState::NewInterpolation(s, _) => Ok(self.new_open_reg(s)),
+            _ => unreachable!(),
         }
     }
 
@@ -717,6 +719,7 @@ impl<'a> Lexer<'a> {
             InterpolateState::NewInterpolation(s, level) => {
                 Ok(self.new_open_string(s, term, level))
             }
+            _ => unreachable!(),
         }
     }
 
@@ -732,6 +735,7 @@ impl<'a> Lexer<'a> {
             InterpolateState::NewInterpolation(s, level) => {
                 Ok(self.new_open_command(s, term, level))
             }
+            _ => unreachable!(),
         }
     }
 
@@ -882,7 +886,7 @@ impl<'a> Lexer<'a> {
             match self.get()? {
                 '/' => {
                     self.check_postfix(&mut s);
-                    return Ok(InterpolateState::Finished(s));
+                    return Ok(InterpolateState::FinishedRegex(s, "".to_string()));
                 }
                 '[' => {
                     char_class += 1;
@@ -1329,6 +1333,10 @@ impl<'a> Lexer<'a> {
 
     fn new_stringlit(&self, string: impl Into<String>) -> Token {
         Annot::new(TokenKind::StringLit(string.into()), self.cur_loc())
+    }
+
+    fn new_regexlit(&self, string: impl Into<String>, op: String) -> Token {
+        Annot::new(TokenKind::Regex(string.into(), op), self.cur_loc())
     }
 
     fn new_commandlit(&self, string: impl Into<String>) -> Token {

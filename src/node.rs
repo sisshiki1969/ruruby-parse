@@ -22,9 +22,9 @@ pub enum NodeKind {
         exclude_end: bool,
         is_const: bool,
     }, // start, end, exclude_end
-    Array(Vec<Node>, bool),        // Vec<ELEM>, is_constant_expr
-    Hash(Vec<(Node, Node)>, bool), // Vec<KEY, VALUE>, is_constant_expr
-    RegExp(Vec<Node>, bool),       // Vec<STRING>, is_constant_expr
+    Array(Vec<Node>, bool),          // Vec<ELEM>, is_constant_expr
+    Hash(Vec<(Node, Node)>, bool),   // Vec<KEY, VALUE>, is_constant_expr
+    RegExp(Vec<Node>, String, bool), // Vec<STRING>, option, is_constant_expr
 
     LocalVar(usize, String),
     Ident(String),
@@ -420,9 +420,9 @@ impl Node {
         Node::new(NodeKind::Hash(key_value, is_const), loc)
     }
 
-    pub(crate) fn new_regexp(regex: Vec<Node>, loc: Loc) -> Self {
+    pub(crate) fn new_regexp(regex: Vec<Node>, op: String, loc: Loc) -> Self {
         let is_const = regex.iter().all(|n| n.is_const_expr());
-        Node::new(NodeKind::RegExp(regex, is_const), loc)
+        Node::new(NodeKind::RegExp(regex, op, is_const), loc)
     }
 
     pub(crate) fn new_self(loc: Loc) -> Self {
