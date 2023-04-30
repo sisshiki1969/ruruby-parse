@@ -77,12 +77,27 @@ impl<'a> Parser<'a> {
         // end
         //let loc = self.prev_loc();
         let mut vars = vec![];
+        let terminator = if self.consume_punct(Punct::LParen)? {
+            Some(Punct::RParen)
+        } else {
+            None
+        };
         loop {
             let name = self.expect_ident()?;
             let outer = self.add_local_var_if_new(&name);
             vars.push((outer, name));
+            if let Some(term) = terminator {
+                if self.consume_punct(term)? {
+                    break;
+                }
+            }
             if !self.consume_punct(Punct::Comma)? {
                 break;
+            }
+            if let Some(term) = terminator {
+                if self.consume_punct(term)? {
+                    break;
+                }
             }
         }
         self.expect_reserved(Reserved::In)?;
