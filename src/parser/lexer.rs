@@ -911,6 +911,19 @@ impl<'a> Lexer<'a> {
                         's' => s += "[[:space:]]",
                         't' => s += "\\t",
                         'v' => s += "\\v",
+                        'x' => {
+                            // CRuby allows not only "\x1f" but "\xf".
+                            let mut x = 0;
+                            if let Some(c) = self.consume_hex() {
+                                x += c;
+                                if let Some(c) = self.consume_hex() {
+                                    x = x * 16 + c;
+                                }
+                                s += &format!("\\x{:02x}", x);
+                            } else {
+                                s += "\\x";
+                            }
+                        }
                         _ => {
                             s.push('\\');
                             // TODO: It is necessary to count capture groups
