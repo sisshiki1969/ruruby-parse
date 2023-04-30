@@ -108,12 +108,12 @@ impl<'a> Parser<'a> {
         self.scope.push(LvarScope::new_for());
         self.loop_stack.push(LoopKind::For);
         let body = self.parse_comp_stmt()?;
-        let mut formal_params = vec![];
-        for (i, _var) in vars.iter().enumerate() {
+        let formal_params = vec![];
+        /*for (i, _var) in vars.iter().enumerate() {
             let dummy_var = format!("_{}", i);
             self.new_param(dummy_var.clone(), loc)?;
             formal_params.push(FormalParam::req_param(dummy_var, loc));
-        }
+        }*/
         self.loop_stack.pop().unwrap();
         let lvar = self.scope.pop().unwrap().lvar;
 
