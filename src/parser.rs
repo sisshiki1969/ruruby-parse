@@ -434,11 +434,12 @@ impl<'a> Parser<'a> {
             vec![]
         };
 
-        let body = self.parse_comp_stmt()?;
-        if do_flag {
-            self.expect_reserved(Reserved::End)?;
+        let body = if do_flag {
+            self.parse_begin()?
         } else {
+            let body = self.parse_comp_stmt()?;
             self.expect_punct(Punct::RBrace)?;
+            body
         };
 
         self.loop_stack.pop().unwrap();
