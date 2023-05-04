@@ -3,15 +3,6 @@ use super::*;
 use num::{BigInt, ToPrimitive};
 use std::ops::Range;
 
-/// $&
-pub const SPECIAL_LASTMATCH: u32 = 0;
-/// $'
-pub const SPECIAL_POSTMATCH: u32 = 1;
-/// $LOAD_PATH
-pub const SPECIAL_LOADPATH: u32 = 10;
-/// $LOADED_FEATURES
-pub const SPECIAL_LOADEDFEATURES: u32 = 11;
-
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct LexerErr(pub ParseErrKind, pub Loc);
 

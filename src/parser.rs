@@ -9,6 +9,15 @@ mod lexer;
 mod literals;
 pub(crate) use lexer::*;
 
+/// $&
+pub const SPECIAL_LASTMATCH: u32 = 0;
+/// $'
+pub const SPECIAL_POSTMATCH: u32 = 1;
+/// $LOAD_PATH
+pub const SPECIAL_LOADPATH: u32 = 10;
+/// $LOADED_FEATURES
+pub const SPECIAL_LOADEDFEATURES: u32 = 11;
+
 /*pub trait LocalsContext: Copy + Sized {
     fn outer(&self) -> Option<Self>;
 
