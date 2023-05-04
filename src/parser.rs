@@ -853,6 +853,18 @@ mod test {
         dbg!(node);
     }
 
+    fn parse_node(code: &str, expected: Node) {
+        let node = Parser::new(
+            code,
+            std::path::PathBuf::new(),
+            None,
+            LvarScope::new_eval(None),
+        )
+        .unwrap()
+        .0;
+        assert_eq!(node, expected);
+    }
+
     fn parse_test_err(code: &str) {
         Parser::new(
             code,
@@ -904,6 +916,52 @@ mod test {
             redo
         end
         "#,
+        );
+    }
+
+    #[test]
+    fn special_vars() {
+        parse_node(
+            "$&",
+            Annot {
+                kind: NodeKind::SpecialVar(SPECIAL_LASTMATCH),
+                loc: Loc(0, 1),
+            },
+        );
+        parse_node(
+            "$'",
+            Annot {
+                kind: NodeKind::SpecialVar(SPECIAL_POSTMATCH),
+                loc: Loc(0, 1),
+            },
+        );
+        parse_node(
+            "$LOAD_PATH",
+            Annot {
+                kind: NodeKind::SpecialVar(SPECIAL_LOADPATH),
+                loc: Loc(0, 9),
+            },
+        );
+        parse_node(
+            "$:",
+            Annot {
+                kind: NodeKind::SpecialVar(SPECIAL_LOADPATH),
+                loc: Loc(0, 1),
+            },
+        );
+        parse_node(
+            "$LOADED_FEATURES",
+            Annot {
+                kind: NodeKind::SpecialVar(SPECIAL_LOADEDFEATURES),
+                loc: Loc(0, 15),
+            },
+        );
+        parse_node(
+            "$\"",
+            Annot {
+                kind: NodeKind::SpecialVar(SPECIAL_LOADEDFEATURES),
+                loc: Loc(0, 1),
+            },
         );
     }
 

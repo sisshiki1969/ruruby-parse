@@ -43,7 +43,7 @@ pub(crate) enum TokenKind {
     Ident(String),
     InstanceVar(String),
     GlobalVar(String),
-    SpecialVar(usize),
+    SpecialVar(u32),
     ClassVar(String),
     Const(String),
     IntegerLit(i64),

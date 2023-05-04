@@ -30,7 +30,7 @@ pub enum NodeKind {
     Ident(String),
     InstanceVar(String),
     GlobalVar(String),
-    SpecialVar(usize),
+    SpecialVar(u32),
     ClassVar(String),
     Const {
         toplevel: bool,
@@ -516,7 +516,7 @@ impl Node {
         Node::new(NodeKind::GlobalVar(name), loc)
     }
 
-    pub(crate) fn new_special_var(id: usize, loc: Loc) -> Self {
+    pub(crate) fn new_special_var(id: u32, loc: Loc) -> Self {
         Node::new(NodeKind::SpecialVar(id), loc)
     }
 

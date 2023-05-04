@@ -3,6 +3,15 @@ use super::*;
 use num::{BigInt, ToPrimitive};
 use std::ops::Range;
 
+/// $&
+pub const SPECIAL_LASTMATCH: u32 = 0;
+/// $'
+pub const SPECIAL_POSTMATCH: u32 = 1;
+/// $LOAD_PATH
+pub const SPECIAL_LOADPATH: u32 = 10;
+/// $LOADED_FEATURES
+pub const SPECIAL_LOADEDFEATURES: u32 = 11;
+
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct LexerErr(pub ParseErrKind, pub Loc);
 
@@ -409,14 +418,16 @@ impl<'a> Lexer<'a> {
             while let Some(ch) = self.consume_numeric() {
                 id = id * 10 + ch as u32 - '0' as u32;
             }
-            Ok(self.new_special_var(id as usize + 100))
+            Ok(self.new_special_var(id as u32 + 100))
         } else {
             let tok = match self.peek() {
                 Some(ch) if ch.is_ascii_punctuation() => {
                     let ch = self.get()?;
                     match ch {
-                        '&' => self.new_special_var(0),
-                        '\'' => self.new_special_var(1),
+                        '&' => self.new_special_var(SPECIAL_LASTMATCH),
+                        '\'' => self.new_special_var(SPECIAL_POSTMATCH),
+                        ':' => self.new_special_var(SPECIAL_LOADPATH),
+                        '"' => self.new_special_var(SPECIAL_LOADEDFEATURES),
                         _ => self.new_global_var(format!("${}", ch)),
                     }
                 }
@@ -457,7 +468,15 @@ impl<'a> Lexer<'a> {
         match var_kind {
             VarKind::InstanceVar => return Ok(self.new_instance_var(tok)),
             VarKind::ClassVar => return Ok(self.new_class_var(tok)),
-            VarKind::GlobalVar => return Ok(self.new_global_var(tok)),
+            VarKind::GlobalVar => {
+                if tok == "$LOAD_PATH" {
+                    return Ok(self.new_special_var(SPECIAL_LOADPATH));
+                } else if tok == "$LOADED_FEATURES" {
+                    return Ok(self.new_special_var(SPECIAL_LOADEDFEATURES));
+                } else {
+                    return Ok(self.new_global_var(tok));
+                }
+            }
             _ => {}
         }
 
@@ -1318,7 +1337,7 @@ impl<'a> Lexer<'a> {
         Annot::new(TokenKind::GlobalVar(ident.into()), self.cur_loc())
     }
 
-    fn new_special_var(&self, id: usize) -> Token {
+    fn new_special_var(&self, id: u32) -> Token {
         Annot::new(TokenKind::SpecialVar(id), self.cur_loc())
     }
 
