@@ -127,6 +127,27 @@ impl SourceInfo {
         }
     }
 
+    pub fn get_line(&self, loc: &Loc) -> usize {
+        let mut line_top = 0;
+        self.code
+            .char_indices()
+            .filter_map(|(pos, ch)| if ch == '\n' { Some(pos) } else { None })
+            .enumerate()
+            .map(|(idx, pos)| {
+                let top = line_top;
+                line_top = pos + 1;
+                Line::new(idx + 1, top, pos)
+            })
+            .find_map(|line| {
+                if line.end >= loc.0 && line.top <= loc.0 {
+                    Some(line.line_no)
+                } else {
+                    None
+                }
+            })
+            .unwrap()
+    }
+
     fn get_next_char(&self, pos: usize) -> Option<char> {
         self.code[pos..].chars().next()
     }
