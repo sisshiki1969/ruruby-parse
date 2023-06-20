@@ -118,7 +118,7 @@ impl<'a> Parser<'a> {
         let lvar = self.scope.pop().unwrap().lvar;
 
         let loc = loc.merge(self.prev_loc());
-        let body = BlockInfo::new(formal_params, body, lvar);
+        let body = BlockInfo::new(formal_params, body, lvar, self.prev_loc());
 
         self.expect_reserved(Reserved::End)?;
         let node = Node::new(
@@ -127,7 +127,7 @@ impl<'a> Parser<'a> {
                 iter: Box::new(iter),
                 body,
             },
-            loc.merge(self.prev_loc()),
+            loc,
         );
         Ok(node)
     }

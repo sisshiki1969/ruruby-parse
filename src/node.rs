@@ -124,14 +124,16 @@ pub struct BlockInfo {
     pub params: Vec<FormalParam>,
     pub body: Box<Node>,
     pub lvar: LvarCollector,
+    pub loc: Loc,
 }
 
 impl BlockInfo {
-    pub(crate) fn new(params: Vec<FormalParam>, body: Node, lvar: LvarCollector) -> Self {
+    pub(crate) fn new(params: Vec<FormalParam>, body: Node, lvar: LvarCollector, loc: Loc) -> Self {
         BlockInfo {
             params,
             body: Box::new(body),
             lvar,
+            loc,
         }
     }
 }
@@ -566,8 +568,7 @@ impl Node {
         lvar: LvarCollector,
         loc: Loc,
     ) -> Self {
-        let loc = body.loc().merge(loc);
-        let info = BlockInfo::new(params, body, lvar);
+        let info = BlockInfo::new(params, body, lvar, loc);
         Node::new(NodeKind::MethodDef(name, info), loc)
     }
 
@@ -579,8 +580,7 @@ impl Node {
         lvar: LvarCollector,
         loc: Loc,
     ) -> Self {
-        let loc = body.loc().merge(loc);
-        let info = BlockInfo::new(params, body, lvar);
+        let info = BlockInfo::new(params, body, lvar, loc);
         Node::new(
             NodeKind::SingletonMethodDef(Box::new(singleton), name, info),
             loc,
@@ -596,7 +596,7 @@ impl Node {
         is_module: bool,
         loc: Loc,
     ) -> Self {
-        let info = BlockInfo::new(vec![], body, lvar);
+        let info = BlockInfo::new(vec![], body, lvar, loc);
         Node::new(
             NodeKind::ClassDef {
                 base: base.map(|node| Box::new(node)),
@@ -615,7 +615,7 @@ impl Node {
         lvar: LvarCollector,
         loc: Loc,
     ) -> Self {
-        let info = BlockInfo::new(vec![], body, lvar);
+        let info = BlockInfo::new(vec![], body, lvar, loc);
         Node::new(
             NodeKind::SingletonClassDef {
                 singleton: Box::new(singleton),
@@ -801,8 +801,10 @@ impl Node {
         lvar: LvarCollector,
         loc: Loc,
     ) -> Self {
-        let loc = loc.merge(body.loc());
-        Node::new(NodeKind::Lambda(BlockInfo::new(params, body, lvar)), loc)
+        Node::new(
+            NodeKind::Lambda(BlockInfo::new(params, body, lvar, loc)),
+            loc,
+        )
     }
 
     pub fn is_splat(&self) -> bool {
