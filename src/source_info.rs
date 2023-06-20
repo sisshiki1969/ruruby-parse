@@ -117,9 +117,13 @@ impl SourceInfo {
 
 impl SourceInfo {
     pub fn new(path: impl Into<PathBuf>, code: impl Into<String>) -> Self {
+        let mut code = code.into();
+        if !code.ends_with('\n') {
+            code.push('\n');
+        }
         SourceInfo {
             path: path.into(),
-            code: code.into(),
+            code,
         }
     }
 
@@ -129,12 +133,12 @@ impl SourceInfo {
 
     fn get_lines(&self, loc: &Loc) -> Vec<Line> {
         let mut line_top = 0;
-        let code = self.code.clone() + " ";
-        let code_len = code.len();
-        let mut lines: Vec<_> = code
+        //let code = self.code.clone() + " ";
+        let code_len = self.code.len();
+        let mut lines: Vec<_> = self
+            .code
             .char_indices()
-            .filter(|(_, ch)| *ch == '\n')
-            .map(|(pos, _)| pos)
+            .filter_map(|(pos, ch)| if ch == '\n' { Some(pos) } else { None })
             .enumerate()
             .map(|(idx, pos)| {
                 let top = line_top;
