@@ -52,6 +52,11 @@ impl SourceInfo {
         self.path.to_string_lossy()
     }
 
+    /// Get short_file name.
+    pub fn short_file_name(&self) -> Cow<'_, str> {
+        self.path.file_name().unwrap().to_string_lossy()
+    }
+
     /// Show the location of *loc* in source text.
     pub fn show_loc(&self, loc: &Loc) {
         eprint!("{}", self.get_location(loc));
