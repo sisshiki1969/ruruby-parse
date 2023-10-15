@@ -2,7 +2,7 @@ use num::BigInt;
 
 use super::*;
 
-impl<'a> Parser<'a> {
+impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
     pub(super) fn parse_comp_stmt(&mut self) -> Result<Node, LexerErr> {
         // COMP_STMT : (STMT (TERM STMT)*)? (TERM+)?
         self.peek()?;

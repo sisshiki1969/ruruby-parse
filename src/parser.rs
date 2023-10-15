@@ -18,18 +18,18 @@ pub const SPECIAL_LOADPATH: u32 = 10;
 /// $LOADED_FEATURES
 pub const SPECIAL_LOADEDFEATURES: u32 = 11;
 
-/*pub trait LocalsContext: Copy + Sized {
+pub trait LocalsContext: Copy + Sized {
     fn outer(&self) -> Option<Self>;
 
     fn get_lvarid(&self, id: &str) -> Option<LvarId>;
 
     fn lvar_collector(&self) -> LvarCollector;
-}*/
+}
 
 #[derive(Debug, Clone, PartialEq, Copy)]
-pub struct DummyFrame();
+pub struct DummyFrame;
 
-impl DummyFrame {
+impl LocalsContext for DummyFrame {
     fn outer(&self) -> Option<Self> {
         None
     }
@@ -37,10 +37,14 @@ impl DummyFrame {
     fn get_lvarid(&self, _id: &str) -> Option<LvarId> {
         None
     }
+
+    fn lvar_collector(&self) -> LvarCollector {
+        LvarCollector::default()
+    }
 }
 
 #[derive(Debug, Clone)]
-pub struct Parser<'a> {
+pub struct Parser<'a, OuterContext: LocalsContext> {
     lexer: Lexer<'a>,
     path: PathBuf,
     prev_loc: Loc,
@@ -48,7 +52,7 @@ pub struct Parser<'a> {
     scope: Vec<LvarScope>,
     /// loop stack.
     loop_stack: Vec<LoopKind>,
-    extern_context: Option<DummyFrame>,
+    extern_context: Option<OuterContext>,
     /// this flag suppress accesory assignment. e.g. x=3
     suppress_acc_assign: bool,
     /// this flag suppress accesory multiple assignment. e.g. x = 2,3
@@ -59,31 +63,31 @@ pub struct Parser<'a> {
     defined_mode: bool,
 }
 
-impl<'a> Parser<'a> {
+impl<'a> Parser<'a, DummyFrame> {
     pub fn parse_program(code: String, path: impl Into<PathBuf>) -> Result<ParseResult, ParseErr> {
         let path = path.into();
         let parse_ctx = LvarScope::new_eval(None);
-        parse(code, path, None, parse_ctx)
+        parse(code, path, None::<DummyFrame>, parse_ctx)
     }
 }
 
-impl<'a> Parser<'a> {
+impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
     pub fn parse_program_binding(
         code: String,
         path: PathBuf,
         context: Option<LvarCollector>,
-        extern_context: Option<DummyFrame>,
+        extern_context: Option<OuterContext>,
     ) -> Result<ParseResult, ParseErr> {
         let parse_ctx = LvarScope::new_block(context);
         parse(code, path, extern_context, parse_ctx)
     }
 }
 
-impl<'a> Parser<'a> {
+impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
     fn new(
         code: &'a str,
         path: PathBuf,
-        extern_context: Option<DummyFrame>,
+        extern_context: Option<OuterContext>,
         scope: LvarScope,
     ) -> Result<(Node, LvarCollector, Token), LexerErr> {
         let lexer = Lexer::new(code);
@@ -415,7 +419,7 @@ impl<'a> Parser<'a> {
     }
 }
 
-impl<'a> Parser<'a> {
+impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
     /// Parse block.
     ///     do |x| stmt end
     ///     { |x| stmt }
@@ -718,7 +722,7 @@ fn error_eof(loc: Loc) -> LexerErr {
 fn parse(
     code: String,
     path: PathBuf,
-    extern_context: Option<DummyFrame>,
+    extern_context: Option<impl LocalsContext>,
     parse_context: LvarScope,
 ) -> Result<ParseResult, ParseErr> {
     match Parser::new(&code, path.clone(), extern_context, parse_context) {
@@ -851,7 +855,7 @@ mod test {
     use super::*;
 
     fn parse_test(code: &str) {
-        let node = Parser::new(
+        let node = Parser::<DummyFrame>::new(
             code,
             std::path::PathBuf::new(),
             None,
@@ -863,7 +867,7 @@ mod test {
     }
 
     fn parse_node(code: &str, expected: Node) {
-        let node = Parser::new(
+        let node = Parser::<DummyFrame>::new(
             code,
             std::path::PathBuf::new(),
             None,
@@ -875,7 +879,7 @@ mod test {
     }
 
     fn parse_test_err(code: &str) {
-        Parser::new(
+        Parser::<DummyFrame>::new(
             code,
             std::path::PathBuf::new(),
             None,

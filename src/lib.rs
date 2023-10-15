@@ -33,8 +33,11 @@ mod test {
     #[test]
     fn test() {
         use crate::parser::*;
-        let res =
-            Parser::parse_program("nil".to_string(), std::path::PathBuf::from("path")).unwrap();
+        let res = Parser::<DummyFrame>::parse_program(
+            "nil".to_string(),
+            std::path::PathBuf::from("path"),
+        )
+        .unwrap();
         eprintln!("{:?}", res)
     }
 }

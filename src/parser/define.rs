@@ -1,7 +1,7 @@
 //use super::get_string_from_reserved;
 use super::*;
 
-impl<'a> Parser<'a> {
+impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
     /// Parse method definition.
     pub(super) fn parse_def(&mut self) -> Result<Node, LexerErr> {
         // メソッド定義

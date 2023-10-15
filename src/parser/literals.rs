@@ -2,7 +2,7 @@ use super::lexer::ParseMode;
 use super::*;
 
 // Parse
-impl<'a> Parser<'a> {
+impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
     /// Parse char literals.
     pub(super) fn parse_char_literal(&mut self) -> Result<Node, LexerErr> {
         let loc = self.loc();

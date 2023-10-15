@@ -1,7 +1,7 @@
 use super::*;
 
 // Parse
-impl<'a> Parser<'a> {
+impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
     pub(super) fn parse_if(&mut self) -> Result<Node, LexerErr> {
         //  if EXPR THEN
         //      COMPSTMT
