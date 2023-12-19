@@ -298,7 +298,7 @@ impl std::fmt::Debug for CmpKind {
 }
 
 impl CmpKind {
-    pub fn from(i: u16) -> Self {
+    pub fn from(i: u8) -> Self {
         match i {
             0 => Self::Eq,
             1 => Self::Ne,
