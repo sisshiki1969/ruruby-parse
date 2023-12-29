@@ -608,6 +608,8 @@ impl<'a> Lexer<'a> {
         if ch == '0' {
             if self.consume('x') {
                 return self.read_hex_number();
+            } else if self.consume('o') {
+                return self.read_octal_number();
             } else if self.consume('b') {
                 return self.read_bin_number();
             }
@@ -694,6 +696,27 @@ impl<'a> Lexer<'a> {
             },
             None => Err(Self::error_parse("Invalid hex number literal.", self.pos)),
         }
+    }
+
+    /// Read octal number.
+    fn read_octal_number(&mut self) -> Result<Token, LexerErr> {
+        let mut val = match self.peek() {
+            Some(ch @ '0'..='7') => ch as u64 - '0' as u64,
+            Some(_) => {
+                return Err(self.error_unexpected(self.pos));
+            }
+            None => return Err(Self::error_eof(self.pos)),
+        };
+        self.get()?;
+        loop {
+            match self.peek() {
+                Some(ch @ '0'..='7') => val = val * 8 + (ch as u64 - '0' as u64),
+                Some('_') => {}
+                _ => break,
+            }
+            self.get()?;
+        }
+        Ok(self.new_numlit(val as i64))
     }
 
     /// Read binary number.
@@ -1684,6 +1707,13 @@ mod test {
             Token![NumLit(173), 1, 3],
             Token![EOF, 4],
         ];
+        assert_tokens(program, ans);
+    }
+
+    #[test]
+    fn octal2() {
+        let program = "0o173";
+        let ans = vec![Token![NumLit(0o173), 0, 4], Token![EOF, 5]];
         assert_tokens(program, ans);
     }
 
