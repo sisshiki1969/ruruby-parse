@@ -60,6 +60,15 @@ impl<'a> Parser<'a, DummyContext> {
 }
 
 impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
+    pub fn parse_program_eval(
+        code: String,
+        path: PathBuf,
+        extern_context: Option<OuterContext>,
+    ) -> Result<ParseResult, ParseErr> {
+        let parse_ctx = LvarScope::new_eval(None);
+        parse(code, path, extern_context, parse_ctx)
+    }
+
     pub fn parse_program_binding(
         code: String,
         path: PathBuf,
