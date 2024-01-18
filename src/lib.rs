@@ -33,7 +33,7 @@ mod test {
     #[test]
     fn test() {
         use crate::parser::*;
-        let res = Parser::<DummyFrame>::parse_program(
+        let res = Parser::<DummyContext>::parse_program(
             "nil".to_string(),
             std::path::PathBuf::from("path"),
         )

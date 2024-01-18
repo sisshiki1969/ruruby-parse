@@ -18,28 +18,16 @@ pub const SPECIAL_LOADPATH: u32 = 10;
 /// $LOADED_FEATURES
 pub const SPECIAL_LOADEDFEATURES: u32 = 11;
 
-pub trait LocalsContext: Copy + Sized {
-    fn outer(&self) -> Option<Self>;
-
-    fn get_lvarid(&self, id: &str) -> Option<LvarId>;
-
-    fn lvar_collector(&self) -> LvarCollector;
+pub trait LocalsContext: Sized {
+    fn find_lvar(&self, id: &str) -> Option<(LvarId, usize)>;
 }
 
-#[derive(Debug, Clone, PartialEq, Copy)]
-pub struct DummyFrame;
+#[derive(Debug, Clone, PartialEq)]
+pub struct DummyContext;
 
-impl LocalsContext for DummyFrame {
-    fn outer(&self) -> Option<Self> {
+impl LocalsContext for DummyContext {
+    fn find_lvar(&self, _id: &str) -> Option<(LvarId, usize)> {
         None
-    }
-
-    fn get_lvarid(&self, _id: &str) -> Option<LvarId> {
-        None
-    }
-
-    fn lvar_collector(&self) -> LvarCollector {
-        LvarCollector::default()
     }
 }
 
@@ -63,11 +51,11 @@ pub struct Parser<'a, OuterContext: LocalsContext> {
     defined_mode: bool,
 }
 
-impl<'a> Parser<'a, DummyFrame> {
+impl<'a> Parser<'a, DummyContext> {
     pub fn parse_program(code: String, path: impl Into<PathBuf>) -> Result<ParseResult, ParseErr> {
         let path = path.into();
         let parse_ctx = LvarScope::new_eval(None);
-        parse(code, path, None::<DummyFrame>, parse_ctx)
+        parse(code, path, None::<DummyContext>, parse_ctx)
     }
 }
 
@@ -224,13 +212,8 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                 _ => return None,
             }
         }
-        let mut ctx = self.extern_context;
-        while let Some(a) = ctx {
-            if a.get_lvarid(id).is_some() {
-                return Some(outer);
-            };
-            outer += 1;
-            ctx = a.outer();
+        if let Some(a) = &self.extern_context {
+            return a.find_lvar(id).map(|(_, outer)| outer);
         }
         None
     }
@@ -855,7 +838,7 @@ mod test {
     use super::*;
 
     fn parse_test(code: &str) {
-        let node = Parser::<DummyFrame>::new(
+        let node = Parser::<DummyContext>::new(
             code,
             std::path::PathBuf::new(),
             None,
@@ -867,7 +850,7 @@ mod test {
     }
 
     fn parse_node(code: &str, expected: Node) {
-        let node = Parser::<DummyFrame>::new(
+        let node = Parser::<DummyContext>::new(
             code,
             std::path::PathBuf::new(),
             None,
@@ -879,7 +862,7 @@ mod test {
     }
 
     fn parse_test_err(code: &str) {
-        Parser::<DummyFrame>::new(
+        Parser::<DummyContext>::new(
             code,
             std::path::PathBuf::new(),
             None,

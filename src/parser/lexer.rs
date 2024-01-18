@@ -1,5 +1,4 @@
 use super::*;
-//use crate::value::real::Real;
 use num::{BigInt, ToPrimitive};
 use std::ops::Range;
 
@@ -13,10 +12,10 @@ pub(crate) enum ParseMode {
     Command,
 }
 
-use enum_iterator::IntoEnumIterator;
+use enum_iterator::all;
 
 fn check_reserved(maybe_reserved: &str) -> Option<Reserved> {
-    for reserved in Reserved::into_enum_iter() {
+    for reserved in all::<Reserved>() {
         if maybe_reserved == reserved.to_str() {
             return Some(reserved);
         }

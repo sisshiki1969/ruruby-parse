@@ -1,6 +1,4 @@
 extern crate clap;
-//extern crate dirs;
-extern crate ruruby_parse;
 
 use clap::*;
 use std::fs::*;
@@ -11,11 +9,11 @@ use std::path::Path;
 #[clap(author, version, about, long_about = None, trailing_var_arg = true)]
 struct Cli {
     /// one line of script. Several -e's allowed. Omit [programfile]
-    #[clap(short, multiple_occurrences = true)]
+    #[arg(short, num_args(0..))]
     exec: Option<String>,
 
     /// print the version number, then turn on verbose mode
-    #[clap(short)]
+    #[arg(short)]
     verbose: bool,
 
     /// program file and arguments
