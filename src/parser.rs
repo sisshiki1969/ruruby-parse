@@ -19,14 +19,14 @@ pub const SPECIAL_LOADPATH: u32 = 10;
 pub const SPECIAL_LOADEDFEATURES: u32 = 11;
 
 pub trait LocalsContext: Sized {
-    fn find_lvar(&self, id: &str) -> Option<(LvarId, usize)>;
+    fn find_lvar(&self, id: &str) -> Option<usize>;
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DummyContext;
 
 impl LocalsContext for DummyContext {
-    fn find_lvar(&self, _id: &str) -> Option<(LvarId, usize)> {
+    fn find_lvar(&self, _id: &str) -> Option<usize> {
         None
     }
 }
@@ -213,7 +213,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
             }
         }
         if let Some(a) = &self.extern_context {
-            return a.find_lvar(id).map(|(_, outer)| outer);
+            return a.find_lvar(id);
         }
         None
     }
