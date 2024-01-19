@@ -218,7 +218,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
             match c.kind {
                 ScopeKind::Block => outer += 1,
                 ScopeKind::For => {}
-                _ => return None,
+                _ => break,
             }
         }
         if let Some(a) = &self.extern_context {
