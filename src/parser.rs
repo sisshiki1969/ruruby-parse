@@ -40,7 +40,7 @@ pub struct Parser<'a, OuterContext: LocalsContext> {
     scope: Vec<LvarScope>,
     /// loop stack.
     loop_stack: Vec<LoopKind>,
-    extern_context: Option<OuterContext>,
+    extern_context: Option<&'a OuterContext>,
     /// this flag suppress accesory assignment. e.g. x=3
     suppress_acc_assign: bool,
     /// this flag suppress accesory multiple assignment. e.g. x = 2,3
@@ -55,7 +55,7 @@ impl<'a> Parser<'a, DummyContext> {
     pub fn parse_program(code: String, path: impl Into<PathBuf>) -> Result<ParseResult, ParseErr> {
         let path = path.into();
         let parse_ctx = LvarScope::new_eval(None);
-        parse(code, path, None::<DummyContext>, parse_ctx)
+        parse(code, path, None::<&DummyContext>, parse_ctx)
     }
 }
 
@@ -63,7 +63,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
     pub fn parse_program_eval(
         code: String,
         path: PathBuf,
-        extern_context: Option<OuterContext>,
+        extern_context: Option<&'a OuterContext>,
     ) -> Result<ParseResult, ParseErr> {
         let parse_ctx = LvarScope::new_eval(None);
         parse(code, path, extern_context, parse_ctx)
@@ -73,7 +73,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
         code: String,
         path: PathBuf,
         context: Option<LvarCollector>,
-        extern_context: Option<OuterContext>,
+        extern_context: Option<&OuterContext>,
     ) -> Result<ParseResult, ParseErr> {
         let parse_ctx = LvarScope::new_block(context);
         parse(code, path, extern_context, parse_ctx)
@@ -84,7 +84,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
     fn new(
         code: &'a str,
         path: PathBuf,
-        extern_context: Option<OuterContext>,
+        extern_context: Option<&'a OuterContext>,
         scope: LvarScope,
     ) -> Result<(Node, LvarCollector, Token), LexerErr> {
         let lexer = Lexer::new(code);
@@ -714,7 +714,7 @@ fn error_eof(loc: Loc) -> LexerErr {
 fn parse(
     code: String,
     path: PathBuf,
-    extern_context: Option<impl LocalsContext>,
+    extern_context: Option<&impl LocalsContext>,
     parse_context: LvarScope,
 ) -> Result<ParseResult, ParseErr> {
     match Parser::new(&code, path.clone(), extern_context, parse_context) {
