@@ -171,10 +171,10 @@ impl SourceInfo {
                 line_top = pos + 1;
                 Line::new(idx + 1, top, pos)
             })
-            .filter(|line| line.end >= loc.0 && line.top <= loc.1)
+            .filter(|line| line.end > loc.0 && line.top < loc.1)
             .collect();
-        if line_top < code_len && loc.0 <= code_len - 1 && line_top <= loc.1 {
-            lines.push(Line::new(lines.len() + 1, line_top, code_len - 1));
+        if line_top < code_len && code_len > loc.0 && line_top < loc.1 {
+            lines.push(Line::new(lines.len() + 1, line_top, code_len));
         }
         lines
     }
