@@ -509,19 +509,7 @@ impl<'a> Lexer<'a> {
         while self.consume_whitespace() || self.consume_newline() {}
         self.token_start_pos = self.pos;
         let ch = self.get()?;
-        if ch.is_ascii_alphabetic() || ch == '_' {
-            self.consume_ident();
-            match self.peek() {
-                Some(ch)
-                    if (ch == '!' && self.peek2() != Some('='))
-                        || ch == '?'
-                        || (allow_assign_like && ch == '=' && self.peek2() != Some('>')) =>
-                {
-                    self.get().unwrap();
-                }
-                _ => {}
-            };
-        } else if ch.is_ascii_punctuation() {
+        if ch.is_ascii_punctuation() && ch != '_' {
             // re-definable operators
             // https://docs.ruby-lang.org/ja/latest/doc/spec=2foperator.html
             // |  ^  &  <=>  ==  ===  =~  >   >=  <   <=   <<  >>
@@ -555,6 +543,18 @@ impl<'a> Lexer<'a> {
                     }
                 }
                 _ => return Err(self.error_unexpected(self.token_start_pos)),
+            };
+        } else if ch.is_ascii_alphabetic() || ch == '_' || !ch.is_ascii() {
+            self.consume_ident();
+            match self.peek() {
+                Some(ch)
+                    if (ch == '!' && self.peek2() != Some('='))
+                        || ch == '?'
+                        || (allow_assign_like && ch == '=' && self.peek2() != Some('>')) =>
+                {
+                    self.get().unwrap();
+                }
+                _ => {}
             };
         } else {
             return Err(self.error_unexpected(self.token_start_pos));
@@ -1198,7 +1198,9 @@ impl<'a> Lexer<'a> {
         let start = self.pos;
         loop {
             match self.peek() {
-                Some(ch) if ch.is_ascii_alphanumeric() || ch == '_' => self.get().unwrap(),
+                Some(ch) if ch.is_ascii_alphanumeric() || ch == '_' || !ch.is_ascii() => {
+                    self.get().unwrap()
+                }
                 _ => break,
             };
         }
