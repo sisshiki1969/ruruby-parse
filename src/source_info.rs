@@ -91,7 +91,7 @@ impl SourceInfo {
             };
             let range_start = std::cmp::max(loc.0, line.top);
             let range_end = std::cmp::min(loc.1, line.end);
-            let length = console::measure_text_width(&code[range_start..range_end]);
+            let length = console::measure_text_width(&code[range_start..=range_end]);
             res_string += &" ".repeat(lead);
             res_string += &"^".repeat(length);
             res_string += "\n";
