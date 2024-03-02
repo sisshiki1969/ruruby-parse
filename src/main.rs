@@ -61,7 +61,10 @@ fn main() {
 
 fn parse_and_output(program: String) {
     match ruruby_parse::Parser::parse_program(program, Path::new("")) {
-        Ok(res) => println!("{:#?}", res.node),
+        Ok(res) => {
+            println!("{:#?}", res.node);
+            println!("{}", res.source_info.get_location(&ruruby_parse::Loc(0, 0)));
+        }
         Err(err) => panic!("{:?}\n{}", err.kind, err.source_info.get_location(&err.loc)),
     };
 }

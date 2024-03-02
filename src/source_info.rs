@@ -71,6 +71,8 @@ impl SourceInfo {
         let mut res_string = String::new();
         let lines = self.get_lines(loc);
         let mut found = false;
+        let term = console::Term::stdout();
+        let term_width = term.size().1 as usize;
         for line in &lines {
             if !found {
                 res_string += &format!("{}:{}\n", self.file_name(), line.line_no);
@@ -82,16 +84,19 @@ impl SourceInfo {
             if self.get_next_char(end) == Some('\n') && end > 0 {
                 end -= 1
             }
-            res_string += &code[start..=end];
-            res_string.push('\n');
-            let lead = if loc.0 <= line.top {
+            let mut lead = if loc.0 <= line.top {
                 0
             } else {
                 console::measure_text_width(&code[start..loc.0])
             };
+            let offset = lead / term_width * term_width;
+            lead -= offset;
             let range_start = std::cmp::max(loc.0, line.top);
             let range_end = std::cmp::min(loc.1, line.end);
+            let term_end = start + (range_end - start) / term_width * term_width + term_width - 1;
             let length = console::measure_text_width(&code[range_start..=range_end]);
+            res_string += &code[(start + offset)..=std::cmp::min(end, term_end)];
+            res_string += "\n";
             res_string += &" ".repeat(lead);
             res_string += &"^".repeat(length);
             res_string += "\n";
