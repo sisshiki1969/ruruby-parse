@@ -1182,7 +1182,7 @@ impl<'a> Lexer<'a> {
 
     /// Consume the next char, if the char is equal to the given one.
     /// Return true if the char was consumed.
-    fn consume(&mut self, expect: char) -> bool {
+    pub(super) fn consume(&mut self, expect: char) -> bool {
         match self.peek() {
             Some(ch) if ch == expect => {
                 self.pos += ch.len_utf8();

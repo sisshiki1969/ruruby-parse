@@ -56,7 +56,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                     (None, self.read_method_ext(s)?)
                 }
             }
-            TokenKind::Punct(p) => (None, self.parse_op_definable(&p)?),
+            TokenKind::Punct(p) => (None, self.parse_op_definable(&p)?.to_string()),
             _ => return Err(error_unexpected(loc, "Invalid method name.")),
         };
 

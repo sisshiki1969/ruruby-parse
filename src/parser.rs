@@ -280,6 +280,10 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
         Ok(tok)
     }
 
+    fn consume_char(&mut self, ch: char) -> bool {
+        self.lexer.consume(ch)
+    }
+
     /// If the next token is Ident, consume and return Some(it).
     /// If not, return None.
     fn consume_ident(&mut self) -> Result<Option<String>, LexerErr> {
@@ -457,36 +461,48 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
 
     /// Parse operator which can be defined as a method.
     /// Return IdentId of the operator.
-    fn parse_op_definable(&mut self, punct: &Punct) -> Result<String, LexerErr> {
+    fn parse_op_definable(&mut self, punct: &Punct) -> Result<&'static str, LexerErr> {
         // TODO: must support
         // ^
-        // **   ~   +@  -@   ` !  !~
+        // **  ~  ` !  !~
         match punct {
-            Punct::Plus => Ok("+".to_string()),
-            Punct::Minus => Ok("-".to_string()),
-            Punct::Mul => Ok("*".to_string()),
-            Punct::Div => Ok("/".to_string()),
-            Punct::Rem => Ok("%".to_string()),
-            Punct::Shl => Ok("<<".to_string()),
-            Punct::Shr => Ok(">>".to_string()),
-            Punct::BitAnd => Ok("&".to_string()),
-            Punct::BitOr => Ok("|".to_string()),
+            Punct::Plus => {
+                if self.consume_char('@') {
+                    Ok("+@")
+                } else {
+                    Ok("+")
+                }
+            }
+            Punct::Minus => {
+                if self.consume_char('@') {
+                    Ok("-@")
+                } else {
+                    Ok("-")
+                }
+            }
+            Punct::Mul => Ok("*"),
+            Punct::Div => Ok("/"),
+            Punct::Rem => Ok("%"),
+            Punct::Shl => Ok("<<"),
+            Punct::Shr => Ok(">>"),
+            Punct::BitAnd => Ok("&"),
+            Punct::BitOr => Ok("|"),
 
-            Punct::Cmp => Ok("<=>".to_string()),
-            Punct::Eq => Ok("==".to_string()),
-            Punct::Ne => Ok("!=".to_string()),
-            Punct::Lt => Ok("<".to_string()),
-            Punct::Le => Ok("<=".to_string()),
-            Punct::Gt => Ok(">".to_string()),
-            Punct::Ge => Ok(">=".to_string()),
-            Punct::TEq => Ok("===".to_string()),
-            Punct::Match => Ok("=~".to_string()),
+            Punct::Cmp => Ok("<=>"),
+            Punct::Eq => Ok("=="),
+            Punct::Ne => Ok("!="),
+            Punct::Lt => Ok("<"),
+            Punct::Le => Ok("<="),
+            Punct::Gt => Ok(">"),
+            Punct::Ge => Ok(">="),
+            Punct::TEq => Ok("==="),
+            Punct::Match => Ok("=~"),
             Punct::LBracket => {
                 if self.consume_punct_no_term(Punct::RBracket)? {
                     if self.consume_punct_no_term(Punct::Assign)? {
-                        Ok("[]=".to_string())
+                        Ok("[]=")
                     } else {
-                        Ok("[]".to_string())
+                        Ok("[]")
                     }
                 } else {
                     let loc = self.loc();
