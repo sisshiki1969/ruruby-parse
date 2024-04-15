@@ -1019,6 +1019,18 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
     /// Check whether `lhs` is a local variable or not.
     fn check_lhs(&mut self, lhs: Node) -> Result<Node, LexerErr> {
         if let NodeKind::Ident(name) = lhs.kind {
+            if name.starts_with('_') {
+                let mut iter = name.chars();
+                iter.next();
+                if let Some(ch1) = iter.next() {
+                    if ch1.is_ascii_digit() && iter.next().is_none() {
+                        return Err(error_numbered_param(
+                            lhs.loc,
+                            (ch1 as u32 - '0' as u32) as u8,
+                        ));
+                    }
+                }
+            }
             let outer = self.add_local_var_if_new(&name);
             return Ok(Node::new_lvar(name, outer, lhs.loc));
         } else if let NodeKind::Const { .. } = lhs.kind {
