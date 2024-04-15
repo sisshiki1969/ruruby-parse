@@ -1,5 +1,3 @@
-use num::BigInt;
-
 use super::*;
 
 impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
@@ -659,6 +657,37 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                         match tok.kind {
                             // Multiple assignment
                             TokenKind::Punct(Punct::Comma) => return Ok(node),
+                            // Method call with block and no args
+                            TokenKind::Punct(Punct::LBrace) | TokenKind::Reserved(Reserved::Do) => {
+                                return self.parse_function_args(node)
+                            }
+                            _ => {}
+                        }
+                    };
+
+                    if !suppress_unparen_call && self.is_command() {
+                        Ok(self.parse_command(name, loc)?)
+                    } else {
+                        Ok(node)
+                    }
+                }
+            }
+            TokenKind::NumberedParam(i, name) => {
+                if self.lexer.trailing_lparen() {
+                    let node = Node::new_identifier(name.clone(), loc);
+                    return self.parse_function_args(node);
+                };
+                if let Some(outer) = self.is_local_var(&name) {
+                    Ok(Node::new_lvar(name, outer, loc))
+                } else {
+                    // FUNCTION or COMMAND or LHS for assignment
+                    let node = Node::new_identifier(name.to_string(), loc);
+                    if let Ok(tok) = self.peek_no_term() {
+                        match tok.kind {
+                            // Multiple assignment
+                            TokenKind::Punct(Punct::Comma) => {
+                                return Err(error_numbered_param(loc, i))
+                            }
                             // Method call with block and no args
                             TokenKind::Punct(Punct::LBrace) | TokenKind::Reserved(Reserved::Do) => {
                                 return self.parse_function_args(node)

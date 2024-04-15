@@ -292,6 +292,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                 self.get()?;
                 Ok(Some(s))
             }
+            TokenKind::NumberedParam(i, _) => Err(error_numbered_param(self.prev_loc(), i)),
             _ => Ok(None),
         }
     }
@@ -390,6 +391,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
     fn expect_ident(&mut self) -> Result<String, LexerErr> {
         match self.get()?.kind {
             TokenKind::Ident(name) => Ok(name),
+            TokenKind::NumberedParam(i, _) => Err(error_numbered_param(self.prev_loc(), i)),
             _ => Err(error_unexpected(self.prev_loc(), "Expect identifier.")),
         }
     }
@@ -436,11 +438,11 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
         self.scope.push(LvarScope::new_block(None));
         self.loop_stack.push(LoopKind::Block);
 
-        let params = if self.consume_punct(Punct::BitOr)? {
-            self.parse_formal_params(Punct::BitOr)?
+        let (params, ordinary_param) = if self.consume_punct(Punct::BitOr)? {
+            (self.parse_formal_params(Punct::BitOr)?, true)
         } else {
             self.consume_punct(Punct::LOr)?;
-            vec![]
+            (vec![], false)
         };
 
         let body = if do_flag {
@@ -721,6 +723,13 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
 
 fn error_unexpected(loc: Loc, msg: impl Into<String>) -> LexerErr {
     LexerErr(ParseErrKind::SyntaxError(msg.into()), loc)
+}
+
+fn error_numbered_param(loc: Loc, i: u8) -> LexerErr {
+    LexerErr(
+        ParseErrKind::SyntaxError(format!("_{i} is reserved for numbered parameter")),
+        loc,
+    )
 }
 
 fn error_eof(loc: Loc) -> LexerErr {

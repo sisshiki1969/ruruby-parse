@@ -1,5 +1,5 @@
 use super::*;
-use num::{BigInt, ToPrimitive};
+use num::ToPrimitive;
 use std::ops::Range;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -427,14 +427,17 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    ///
     /// Read identifier. ('@@xx', '$x', '@x')
+    ///
     fn read_identifier(
         &mut self,
         ch: impl Into<Option<char>>,
         var_kind: VarKind,
     ) -> Result<Token, LexerErr> {
+        let ch = ch.into();
         // read identifier or reserved keyword
-        let is_const = match ch.into() {
+        let is_const = match ch {
             Some(ch) => ch.is_ascii_uppercase(),
             None => {
                 // Builtin global variables.
@@ -455,6 +458,15 @@ impl<'a> Lexer<'a> {
         };
         self.consume_ident();
         let tok = self.current_slice();
+        if var_kind == VarKind::Identifier && ch == Some('_') {
+            let mut iter = tok.chars();
+            iter.next();
+            if let Some(ch1) = iter.next() {
+                if ch1.is_ascii_digit() && iter.next().is_none() {
+                    return Ok(self.new_numbered_param(ch1));
+                }
+            }
+        }
         match var_kind {
             VarKind::InstanceVar => return Ok(self.new_instance_var(tok)),
             VarKind::ClassVar => return Ok(self.new_class_var(tok)),
@@ -1338,6 +1350,10 @@ impl<'a> Lexer<'a> {
 impl<'a> Lexer<'a> {
     fn new_ident(&self, ident: impl Into<String>) -> Token {
         Token::new_ident(ident.into(), self.cur_loc())
+    }
+
+    fn new_numbered_param(&self, i: char) -> Token {
+        Token::new_numbered_param(i as u32 - '0' as u32, self.cur_loc())
     }
 
     fn new_instance_var(&self, ident: impl Into<String>) -> Token {

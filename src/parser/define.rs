@@ -44,6 +44,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                     (None, self.read_method_ext(s)?)
                 }
             }
+            TokenKind::NumberedParam(i, _) => return Err(error_numbered_param(loc, i)),
             TokenKind::Const(s) => {
                 if self.consume_punct_no_term(Punct::Dot)?
                     || self.consume_punct_no_term(Punct::Scope)?

@@ -1,7 +1,5 @@
-use super::parser::NReal;
 use super::*;
 use enum_iterator::Sequence;
-use node::BinOp;
 use num::BigInt;
 use std::fmt::*;
 
@@ -41,6 +39,7 @@ impl Display for Token {
 pub(crate) enum TokenKind {
     Eof,
     Ident(String),
+    NumberedParam(u8, String),
     InstanceVar(String),
     GlobalVar(String),
     SpecialVar(u32),
@@ -204,6 +203,10 @@ impl Token {
         Annot::new(TokenKind::Ident(ident.into()), loc)
     }
 
+    pub(crate) fn new_numbered_param(i: u32, loc: Loc) -> Self {
+        Annot::new(TokenKind::NumberedParam(i as u8, format!("_{i}")), loc)
+    }
+
     pub(crate) fn new_instance_var(ident: impl Into<String>, loc: Loc) -> Self {
         Annot::new(TokenKind::InstanceVar(ident.into()), loc)
     }
@@ -301,6 +304,7 @@ impl Token {
     pub(crate) fn can_be_symbol(&self) -> Option<&str> {
         let id = match &self.kind {
             TokenKind::Ident(ident) => ident,
+            TokenKind::NumberedParam(_, ident) => ident,
             TokenKind::Const(ident) => ident,
             TokenKind::InstanceVar(ident) => ident,
             TokenKind::StringLit(ident) => ident,

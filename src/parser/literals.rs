@@ -1,4 +1,3 @@
-use super::lexer::ParseMode;
 use super::*;
 
 // Parse
