@@ -674,33 +674,30 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
             }
             TokenKind::NumberedParam(i, name) => {
                 if self.lexer.trailing_lparen() {
+                    // _1()
                     let node = Node::new_identifier(name.clone(), loc);
                     return self.parse_function_args(node);
                 };
-                if let Some(outer) = self.is_local_var(&name) {
-                    Ok(Node::new_lvar(name, outer, loc))
-                } else {
-                    // FUNCTION or COMMAND or LHS for assignment
-                    let node = Node::new_identifier(name.to_string(), loc);
-                    if let Ok(tok) = self.peek_no_term() {
-                        match tok.kind {
-                            // Multiple assignment
-                            TokenKind::Punct(Punct::Comma) => {
-                                return Err(error_numbered_param(loc, i))
-                            }
-                            // Method call with block and no args
-                            TokenKind::Punct(Punct::LBrace) | TokenKind::Reserved(Reserved::Do) => {
-                                return self.parse_function_args(node)
-                            }
-                            _ => {}
+                self.check_outer_numbered_param(loc)?;
+                // FUNCTION or COMMAND or LHS for assignment
+                let node = Node::new_identifier(name.to_string(), loc);
+                if let Ok(tok) = self.peek_no_term() {
+                    match tok.kind {
+                        // Multiple assignment
+                        TokenKind::Punct(Punct::Comma) => return Err(error_numbered_param(loc, i)),
+                        // Method call with block and no args
+                        // _1 {}
+                        TokenKind::Punct(Punct::LBrace) | TokenKind::Reserved(Reserved::Do) => {
+                            return self.parse_function_args(node)
                         }
-                    };
-
-                    if !suppress_unparen_call && self.is_command() {
-                        Ok(self.parse_command(name, loc)?)
-                    } else {
-                        Ok(node)
+                        _ => {}
                     }
+                };
+
+                if !suppress_unparen_call && self.is_command() {
+                    Ok(self.parse_command(name, loc)?)
+                } else {
+                    Ok(node)
                 }
             }
             TokenKind::InstanceVar(name) => Ok(Node::new_instance_var(name, loc)),
@@ -1024,6 +1021,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                 iter.next();
                 if let Some(ch1) = iter.next() {
                     if ch1.is_ascii_digit() && iter.next().is_none() {
+                        // lhs is numbered parameter literal
                         return Err(error_numbered_param(
                             lhs.loc,
                             (ch1 as u32 - '0' as u32) as u8,

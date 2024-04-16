@@ -227,6 +227,33 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
         None
     }
 
+    /// Check whether numbered parameters exist in outer blocks.
+    fn check_outer_numbered_param(&mut self, loc: Loc) -> Result<(), LexerErr> {
+        //let mut outer = 0;
+        if let Some(loc) = self.scope.last_mut().unwrap().lvar.prohibit_numbered_param {
+            return Err(error_nested_numbered_param(loc));
+        }
+        for c in self.scope.iter_mut().rev().skip(1) {
+            if let Some(loc) = c.lvar.numbered_param {
+                return Err(error_nested_numbered_param(loc));
+            }
+            let prohibit = &mut c.lvar.prohibit_numbered_param;
+            if prohibit.is_none() {
+                *prohibit = Some(loc);
+            }
+            match c.kind {
+                ScopeKind::Block => {} //outer += 1,
+                ScopeKind::For => {}
+                _ => break,
+            }
+        }
+        self.scope.last_mut().unwrap().lvar.numbered_param = Some(loc);
+        /*if let Some(a) = &self.extern_context {
+            return a.find_lvar(id);
+        }*/
+        Ok(())
+    }
+
     /// Peek next token (skipping line terminators).
     fn peek(&mut self) -> Result<Token, LexerErr> {
         self.lexer.peek_token_skip_lt()
@@ -728,6 +755,13 @@ fn error_unexpected(loc: Loc, msg: impl Into<String>) -> LexerErr {
 fn error_numbered_param(loc: Loc, i: u8) -> LexerErr {
     LexerErr(
         ParseErrKind::SyntaxError(format!("_{i} is reserved for numbered parameter")),
+        loc,
+    )
+}
+
+fn error_nested_numbered_param(loc: Loc) -> LexerErr {
+    LexerErr(
+        ParseErrKind::SyntaxError(format!("numbered parameter is already used")),
         loc,
     )
 }

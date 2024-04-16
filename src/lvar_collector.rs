@@ -47,6 +47,8 @@ pub struct LvarCollector {
     kwrest: Option<LvarId>,
     block: Option<LvarId>,
     pub delegate_param: Option<LvarId>,
+    pub numbered_param: Option<crate::Loc>,
+    pub prohibit_numbered_param: Option<crate::Loc>,
 }
 
 impl LvarCollector {
@@ -59,6 +61,8 @@ impl LvarCollector {
             kwrest: None,
             block: None,
             delegate_param: None,
+            numbered_param: None,
+            prohibit_numbered_param: None,
         }
     }
 }
@@ -72,6 +76,8 @@ impl LvarCollector {
             kwrest: None,
             block: None,
             delegate_param: None,
+            numbered_param: None,
+            prohibit_numbered_param: None,
         }
     }
 
