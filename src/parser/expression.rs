@@ -894,6 +894,14 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                     let mut kvp = vec![(node, value)];
                     if self.consume_punct(Punct::Comma)? {
                         loop {
+                            // Support trailing comma
+                            if let Some(punct) = punct {
+                                if let TokenKind::Punct(p) = self.peek()?.kind {
+                                    if punct == p {
+                                        break;
+                                    }
+                                }
+                            };
                             let key = self.parse_arg()?;
                             self.expect_punct(Punct::FatArrow)?;
                             let value = self.parse_arg()?;

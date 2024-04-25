@@ -984,6 +984,14 @@ mod test {
     }
 
     #[test]
+    fn method_call() {
+        parse_test("a()");
+        parse_test("a(100)");
+        parse_test("a(:a=>1, :b=>2)");
+        parse_test("a(:a=>1, :b=>2, )");
+    }
+
+    #[test]
     fn special_vars() {
         parse_node(
             "$&",
