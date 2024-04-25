@@ -1055,8 +1055,9 @@ impl<'a> Lexer<'a> {
             'v' => '\x0b',
             'x' => {
                 let c1 = self.expect_hex()?;
-                let c2 = self.expect_hex()?;
-                match std::char::from_u32(c1 * 16 + c2) {
+                let c2 = self.consume_hex();
+                let c = if let Some(c2) = c2 { c1 * 16 + c2 } else { c1 };
+                match std::char::from_u32(c) {
                     Some(c) => c,
                     None => return Err(self.error_unexpected(self.pos)),
                 }
@@ -1731,6 +1732,20 @@ mod test {
     fn octal2() {
         let program = "0o173";
         let ans = vec![Token![NumLit(0o173), 0, 4], Token![EOF, 5]];
+        assert_tokens(program, ans);
+    }
+
+    #[test]
+    fn hex() {
+        let program = "0xf";
+        let ans = vec![Token![NumLit(0xf), 0, 2], Token![EOF, 3]];
+        assert_tokens(program, ans);
+    }
+
+    #[test]
+    fn hex2() {
+        let program = "0xfe";
+        let ans = vec![Token![NumLit(0xfe), 0, 3], Token![EOF, 4]];
         assert_tokens(program, ans);
     }
 
