@@ -168,7 +168,7 @@ impl LvarCollector {
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
-pub struct LvarTable(Vec<String>);
+pub struct LvarTable(pub Vec<String>);
 
 impl LvarTable {
     pub fn new() -> Self {
