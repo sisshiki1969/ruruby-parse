@@ -457,8 +457,8 @@ impl Node {
         Node::new(NodeKind::AliasMethod(Box::new(new), Box::new(old)), loc)
     }
 
-    pub(crate) fn new_discard() -> Self {
-        Node::new(NodeKind::DiscardLhs, Loc::default())
+    pub(crate) fn new_discard(loc: Loc) -> Self {
+        Node::new(NodeKind::DiscardLhs, loc)
     }
 
     pub(crate) fn new_comp_stmt(mut nodes: Vec<Node>, mut loc: Loc) -> Self {
