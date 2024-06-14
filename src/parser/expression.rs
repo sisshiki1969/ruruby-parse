@@ -117,6 +117,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
         self.suppress_acc_assign = true;
         loop {
             if self.peek_punct_no_term(Punct::Assign) {
+                mlhs.push(Node::new_discard());
                 break;
             }
             let node = self.parse_method_call()?;

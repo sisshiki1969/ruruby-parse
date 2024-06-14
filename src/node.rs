@@ -111,6 +111,7 @@ pub enum NodeKind {
     Defined(Box<Node>),
     Super(Option<ArgList>),
     AliasMethod(Box<Node>, Box<Node>), // (new_method, old_method)
+    DiscardLhs,
 }
 
 impl std::default::Default for NodeKind {
@@ -454,6 +455,10 @@ impl Node {
 
     pub(crate) fn new_alias(new: Node, old: Node, loc: Loc) -> Self {
         Node::new(NodeKind::AliasMethod(Box::new(new), Box::new(old)), loc)
+    }
+
+    pub(crate) fn new_discard() -> Self {
+        Node::new(NodeKind::DiscardLhs, Loc::default())
     }
 
     pub(crate) fn new_comp_stmt(mut nodes: Vec<Node>, mut loc: Loc) -> Self {
