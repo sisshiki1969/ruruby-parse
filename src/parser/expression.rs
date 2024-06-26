@@ -1085,6 +1085,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                     Reserved::Do
                         | Reserved::If
                         | Reserved::Unless
+                        | Reserved::Rescue
                         | Reserved::While
                         | Reserved::Until
                         | Reserved::And
