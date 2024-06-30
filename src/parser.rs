@@ -129,10 +129,6 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
         false
     }
 
-    fn is_breakable(&self) -> bool {
-        self.loop_stack.last() != Some(&LoopKind::Top)
-    }
-
     /// Check whether parameter delegation exists or not in the method def of current context.
     /// If not, return ParseErr.
     fn check_delegate(&self) -> Result<(), LexerErr> {

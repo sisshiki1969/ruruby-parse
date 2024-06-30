@@ -112,7 +112,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
 
     fn parse_mul_assign(&mut self, node: Node) -> Result<Node, LexerErr> {
         // EXPR : MLHS `=' MRHS
-        let mut loc = node.loc;
+        let loc = node.loc;
         let mut mlhs = vec![node];
         let old = self.suppress_acc_assign;
         self.suppress_acc_assign = true;
