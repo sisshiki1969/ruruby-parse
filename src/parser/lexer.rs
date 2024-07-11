@@ -820,7 +820,7 @@ impl<'a> Lexer<'a> {
                     if self.consume_newline() {
                         continue;
                     };
-                    s.push(self.read_escaped_char()?);
+                    self.read_escaped_char(&mut s)?;
                 }
                 '#' => match self.peek() {
                     // string interpolation
@@ -887,14 +887,15 @@ impl<'a> Lexer<'a> {
     }
 
     /// Read char literal.
-    pub(crate) fn read_char_literal(&mut self) -> Result<char, LexerErr> {
+    pub(crate) fn read_char_literal(&mut self, buf: &mut String) -> Result<(), LexerErr> {
         let c = self.get()?;
         self.flush();
         if c == '\\' {
-            self.read_escaped_char()
+            self.read_escaped_char(buf)?;
         } else {
-            Ok(c)
-        }
+            buf.push(c);
+        };
+        Ok(())
     }
 
     /// Convert postfix of regular expression.
@@ -1041,7 +1042,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn read_escaped_char(&mut self) -> Result<char, LexerErr> {
+    fn read_escaped_char(&mut self, buf: &mut String) -> Result<(), LexerErr> {
         let ch = match self.get()? {
             c @ '\'' | c @ '"' | c @ '?' | c @ '\\' => c,
             'a' => '\x07',
@@ -1057,10 +1058,11 @@ impl<'a> Lexer<'a> {
                 let c1 = self.expect_hex()?;
                 let c2 = self.consume_hex();
                 let c = if let Some(c2) = c2 { c1 * 16 + c2 } else { c1 };
-                match std::char::from_u32(c) {
-                    Some(c) => c,
-                    None => return Err(self.error_unexpected(self.pos)),
+                if c > 0x7f {
+                    return Err(Self::error_parse("Invalid UTF-8 character.", self.pos));
                 }
+                buf.push(char::from_u32(c).unwrap());
+                return Ok(());
             }
             'u' => {
                 let mut code = 0;
@@ -1081,7 +1083,8 @@ impl<'a> Lexer<'a> {
             }
             c => c,
         };
-        Ok(ch)
+        buf.push(ch);
+        Ok(())
     }
 
     pub(crate) fn read_heredocument(&mut self) -> Result<(ParseMode, usize, usize), LexerErr> {

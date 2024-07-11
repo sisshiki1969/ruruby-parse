@@ -5,8 +5,9 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
     /// Parse char literals.
     pub(super) fn parse_char_literal(&mut self) -> Result<Node, LexerErr> {
         let loc = self.loc();
-        let s = self.lexer.read_char_literal()?;
-        Ok(Node::new_string(s.to_string(), loc.merge(self.prev_loc)))
+        let mut s = String::new();
+        self.lexer.read_char_literal(&mut s)?;
+        Ok(Node::new_string(s, loc.merge(self.prev_loc)))
     }
 
     /// Parse string literals.
