@@ -1059,9 +1059,10 @@ impl<'a> Lexer<'a> {
                 let c2 = self.consume_hex();
                 let c = if let Some(c2) = c2 { c1 * 16 + c2 } else { c1 };
                 if c > 0x7f {
-                    return Err(Self::error_parse("Invalid UTF-8 character.", self.pos));
+                    buf.push_byte(c as u8);
+                } else {
+                    buf.push_char(char::from_u32(c).unwrap());
                 }
-                buf.push_char(char::from_u32(c).unwrap());
                 return Ok(());
             }
             'u' => {

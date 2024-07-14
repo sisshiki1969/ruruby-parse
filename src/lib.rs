@@ -128,6 +128,15 @@ impl RubyString {
             }
         }
     }
+
+    fn push_byte(&mut self, b: u8) {
+        let mut bytes = match std::mem::take(self) {
+            RubyString::Bytes(bytes) => bytes,
+            RubyString::Utf8(string) => string.into_bytes(),
+        };
+        bytes.push(b);
+        *self = RubyString::Bytes(bytes);
+    }
 }
 
 #[cfg(test)]
