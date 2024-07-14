@@ -13,6 +13,7 @@ pub enum NodeKind {
     Imaginary(NReal),
     Bool(bool),
     String(String),
+    Bytes(Vec<u8>),
     InterporatedString(Vec<Node>),
     Command(Box<Node>),
     Symbol(String),
@@ -363,6 +364,7 @@ impl Node {
                 | NodeKind::Nil
                 | NodeKind::Symbol(_)
                 | NodeKind::String(_)
+                | NodeKind::Bytes(_)
         )
     }
 
@@ -390,8 +392,12 @@ impl Node {
         Node::new(NodeKind::Imaginary(num), loc)
     }
 
-    pub(crate) fn new_string(s: String, loc: Loc) -> Self {
-        Node::new(NodeKind::String(s), loc)
+    pub(crate) fn new_string(s: RubyString, loc: Loc) -> Self {
+        let kind = match s {
+            RubyString::Bytes(bytes) => NodeKind::Bytes(bytes),
+            RubyString::Utf8(s) => NodeKind::String(s),
+        };
+        Node::new(kind, loc)
     }
 
     pub(crate) fn new_array(nodes: Vec<Node>, loc: Loc) -> Self {

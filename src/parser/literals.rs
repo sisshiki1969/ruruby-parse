@@ -5,16 +5,15 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
     /// Parse char literals.
     pub(super) fn parse_char_literal(&mut self) -> Result<Node, LexerErr> {
         let loc = self.loc();
-        let mut s = String::new();
+        let mut s = RubyString::new();
         self.lexer.read_char_literal(&mut s)?;
         Ok(Node::new_string(s, loc.merge(self.prev_loc)))
     }
 
     /// Parse string literals.
     /// Adjacent string literals are to be combined.
-    pub(super) fn parse_string_literal(&mut self, s: &str) -> Result<Node, LexerErr> {
+    pub(super) fn parse_string_literal(&mut self, mut s: RubyString) -> Result<Node, LexerErr> {
         let loc = self.prev_loc();
-        let mut s = s.to_string();
         loop {
             match self.peek_no_term()?.kind {
                 TokenKind::StringLit(next_s) => {
@@ -23,8 +22,8 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                 }
                 TokenKind::OpenString(next_s, delimiter, level) => {
                     self.get()?;
-                    s += &next_s;
-                    return self.parse_interporated_string_literal(&s, delimiter, level);
+                    s += next_s.as_str();
+                    return self.parse_interporated_string_literal(s, delimiter, level);
                 }
                 _ => break,
             }
@@ -34,12 +33,12 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
 
     pub(super) fn parse_interporated_string_literal(
         &mut self,
-        s: &str,
+        s: RubyString,
         delimiter: Option<char>,
         level: usize,
     ) -> Result<Node, LexerErr> {
         let start_loc = self.prev_loc();
-        let mut nodes = vec![Node::new_string(s.to_string(), start_loc)];
+        let mut nodes = vec![Node::new_string(s, start_loc)];
         loop {
             self.parse_template(&mut nodes)?;
             let tok = self
@@ -57,7 +56,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                             }
                             TokenKind::OpenString(next_s, _, _) => {
                                 let t = self.get()?;
-                                name += &next_s;
+                                name += next_s.as_str();
                                 loc = loc.merge(t.loc);
                                 break;
                             }
@@ -73,7 +72,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                     nodes.push(Node::new_string(name, loc));
                 }
                 TokenKind::OpenString(s, _, _) => {
-                    nodes.push(Node::new_string(s, loc));
+                    nodes.push(Node::new_string(s.into(), loc));
                 }
                 _ => unreachable!("{:?}", tok),
             }
@@ -91,7 +90,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                     let ary = content
                         .split(|c| c == ' ' || c == '\n')
                         .filter(|x| x != &"")
-                        .map(|x| Node::new_string(x.to_string(), loc))
+                        .map(|x| Node::new_string(x.to_string().into(), loc))
                         .collect();
                     Ok(Node::new_array(ary, tok.loc))
                 }
@@ -104,7 +103,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                     Ok(Node::new_array(ary, tok.loc))
                 }
                 'r' => {
-                    let ary = vec![Node::new_string(content, loc)];
+                    let ary = vec![Node::new_string(content.into(), loc)];
                     let op = self.lexer.check_postfix();
                     Ok(Node::new_regexp(ary, op, tok.loc))
                 }
@@ -113,7 +112,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
         } else if let TokenKind::StringLit(s) = tok.kind {
             Ok(Node::new_string(s, loc))
         } else if let TokenKind::OpenString(s, term, level) = tok.kind {
-            let node = self.parse_interporated_string_literal(&s, term, level)?;
+            let node = self.parse_interporated_string_literal(s.into(), term, level)?;
             Ok(node)
         } else {
             unreachable!("parse_percent_notation(): {:?}", tok.kind);
@@ -127,9 +126,10 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
         }
         let (mode, start, end) = self.lexer.read_heredocument()?;
         let node = match mode {
-            ParseMode::Single => {
-                Node::new_string(self.lexer.code[start..end].to_string(), Loc(start, end))
-            }
+            ParseMode::Single => Node::new_string(
+                self.lexer.code[start..end].to_string().into(),
+                Loc(start, end),
+            ),
             ParseMode::Double => {
                 let mut parser = self.new_with_range(start, end);
                 let res = parser.here_double();
@@ -150,7 +150,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
         let node = match tok.kind {
             TokenKind::StringLit(s) => Node::new_string(s, loc),
             TokenKind::OpenString(s, term, level) => {
-                self.parse_interporated_string_literal(&s, term, level)?
+                self.parse_interporated_string_literal(s.into(), term, level)?
             }
             _ => unreachable!(),
         };
@@ -162,11 +162,11 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
         let loc = tok.loc();
         let node = match tok.kind {
             TokenKind::CommandLit(s) => {
-                let content = Node::new_string(s, loc);
+                let content = Node::new_string(s.into(), loc);
                 Node::new_command(content)
             }
             TokenKind::OpenString(s, term, level) => {
-                let content = self.parse_interporated_string_literal(&s, term, level)?;
+                let content = self.parse_interporated_string_literal(s.into(), term, level)?;
                 Node::new_command(content)
             }
             _ => unreachable!(),
@@ -221,14 +221,14 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
         };
         let token = self.get()?;
         let symbol_loc = self.prev_loc();
-        let id = match &token.kind {
+        let id = match token.kind {
             TokenKind::OpenString(s, term, level) => {
-                let node = self.parse_interporated_string_literal(s, *term, *level)?;
+                let node = self.parse_interporated_string_literal(s.into(), term, level)?;
                 let method = "to_sym".to_string();
                 let loc = symbol_loc.merge(node.loc());
                 return Ok(Node::new_mcall_noarg(node, method, false, loc));
             }
-            TokenKind::StringLit(ident) => ident.to_owned(),
+            TokenKind::StringLit(ident) => ident.to_owned().as_string()?,
             _ => return Err(error_unexpected(symbol_loc, "Expect identifier or string.")),
         };
         Ok(Node::new_symbol(id, loc.merge(self.prev_loc())))
@@ -240,12 +240,12 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
         let mut nodes = match tok.kind {
             TokenKind::Regex(s, op) => {
                 return Ok(Node::new_regexp(
-                    vec![Node::new_string(s, tok.loc)],
+                    vec![Node::new_string(s.into(), tok.loc)],
                     op,
                     tok.loc,
                 ));
             }
-            TokenKind::OpenRegex(s) => vec![Node::new_string(s, tok.loc)],
+            TokenKind::OpenRegex(s) => vec![Node::new_string(s.into(), tok.loc)],
             _ => unreachable!(),
         };
         loop {
@@ -254,11 +254,11 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
             let loc = tok.loc();
             match tok.kind {
                 TokenKind::Regex(s, op) => {
-                    nodes.push(Node::new_string(s, loc));
+                    nodes.push(Node::new_string(s.into(), loc));
                     return Ok(Node::new_regexp(nodes, op, start_loc.merge(loc)));
                 }
                 TokenKind::OpenRegex(s) => {
-                    nodes.push(Node::new_string(s, loc));
+                    nodes.push(Node::new_string(s.into(), loc));
                 }
                 _ => unreachable!(),
             }

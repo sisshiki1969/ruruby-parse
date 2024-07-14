@@ -49,9 +49,9 @@ enum VarKind {
 }
 #[derive(Debug, Clone, PartialEq)]
 enum InterpolateState {
-    Finished(String),
+    Finished(RubyString),
     FinishedRegex(String, String),
-    NewInterpolation(String, usize), // (string, paren_level)
+    NewInterpolation(RubyString, usize), // (string, paren_level)
 }
 
 impl<'a> Lexer<'a> {
@@ -179,7 +179,7 @@ impl<'a> Lexer<'a> {
     pub(crate) fn get_regexp(&mut self) -> Result<Token, LexerErr> {
         match self.read_regexp_sub()? {
             InterpolateState::FinishedRegex(s, op) => Ok(self.new_regexlit(s, op)),
-            InterpolateState::NewInterpolation(s, _) => Ok(self.new_open_reg(s)),
+            InterpolateState::NewInterpolation(s, _) => Ok(self.new_open_reg(s.as_string()?)),
             _ => unreachable!(),
         }
     }
@@ -761,7 +761,7 @@ impl<'a> Lexer<'a> {
         match self.read_interpolate(open, term, level)? {
             InterpolateState::Finished(s) => Ok(self.new_stringlit(s)),
             InterpolateState::NewInterpolation(s, level) => {
-                Ok(self.new_open_string(s, term, level))
+                Ok(self.new_open_string(s.as_string()?, term, level))
             }
             _ => unreachable!(),
         }
@@ -775,9 +775,9 @@ impl<'a> Lexer<'a> {
         level: usize,
     ) -> Result<Token, LexerErr> {
         match self.read_interpolate(open, term, level)? {
-            InterpolateState::Finished(s) => Ok(self.new_commandlit(s)),
+            InterpolateState::Finished(s) => self.new_commandlit(s),
             InterpolateState::NewInterpolation(s, level) => {
-                Ok(self.new_open_command(s, term, level))
+                Ok(self.new_open_command(s.as_string()?, term, level))
             }
             _ => unreachable!(),
         }
@@ -790,7 +790,7 @@ impl<'a> Lexer<'a> {
         term: Option<char>,
         mut level: usize,
     ) -> Result<InterpolateState, LexerErr> {
-        let mut s = "".to_string();
+        let mut s = RubyString::new();
         loop {
             let ch = match self.get() {
                 Ok(c) => c,
@@ -804,14 +804,14 @@ impl<'a> Lexer<'a> {
             };
             match ch {
                 c if open == Some(c) => {
-                    s.push(c);
+                    s.push_char(c);
                     level += 1;
                 }
                 c if Some(c) == term => {
                     if level == 0 {
                         return Ok(InterpolateState::Finished(s));
                     } else {
-                        s.push(c);
+                        s.push_char(c);
                         level -= 1;
                     }
                 }
@@ -827,15 +827,15 @@ impl<'a> Lexer<'a> {
                     Some(ch) if ch == '{' || ch == '$' || ch == '@' => {
                         return Ok(InterpolateState::NewInterpolation(s, level))
                     }
-                    _ => s.push('#'),
+                    _ => s.push_char('#'),
                 },
                 '\n' => {
-                    s.push('\n');
+                    s.push_char('\n');
                     if self.heredoc_pos > self.pos {
                         self.pos = self.heredoc_pos;
                     }
                 }
-                c => s.push(c),
+                c => s.push_char(c),
             }
         }
     }
@@ -887,13 +887,13 @@ impl<'a> Lexer<'a> {
     }
 
     /// Read char literal.
-    pub(crate) fn read_char_literal(&mut self, buf: &mut String) -> Result<(), LexerErr> {
+    pub(crate) fn read_char_literal(&mut self, buf: &mut RubyString) -> Result<(), LexerErr> {
         let c = self.get()?;
         self.flush();
         if c == '\\' {
             self.read_escaped_char(buf)?;
         } else {
-            buf.push(c);
+            buf.push_char(c);
         };
         Ok(())
     }
@@ -987,7 +987,7 @@ impl<'a> Lexer<'a> {
                 }
                 '#' => match self.peek() {
                     Some(ch) if ch == '{' || ch == '$' || ch == '@' => {
-                        return Ok(InterpolateState::NewInterpolation(s, 0))
+                        return Ok(InterpolateState::NewInterpolation(s.into(), 0))
                     }
                     _ => s.push('#'),
                 },
@@ -1042,7 +1042,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn read_escaped_char(&mut self, buf: &mut String) -> Result<(), LexerErr> {
+    fn read_escaped_char(&mut self, buf: &mut RubyString) -> Result<(), LexerErr> {
         let ch = match self.get()? {
             c @ '\'' | c @ '"' | c @ '?' | c @ '\\' => c,
             'a' => '\x07',
@@ -1061,7 +1061,7 @@ impl<'a> Lexer<'a> {
                 if c > 0x7f {
                     return Err(Self::error_parse("Invalid UTF-8 character.", self.pos));
                 }
-                buf.push(char::from_u32(c).unwrap());
+                buf.push_char(char::from_u32(c).unwrap());
                 return Ok(());
             }
             'u' => {
@@ -1083,7 +1083,7 @@ impl<'a> Lexer<'a> {
             }
             c => c,
         };
-        buf.push(ch);
+        buf.push_char(ch);
         Ok(())
     }
 
@@ -1400,7 +1400,7 @@ impl<'a> Lexer<'a> {
         Token::new_imaginarylit(num, self.cur_loc())
     }
 
-    fn new_stringlit(&self, string: impl Into<String>) -> Token {
+    fn new_stringlit(&self, string: impl Into<RubyString>) -> Token {
         Annot::new(TokenKind::StringLit(string.into()), self.cur_loc())
     }
 
@@ -1408,8 +1408,11 @@ impl<'a> Lexer<'a> {
         Annot::new(TokenKind::Regex(string.into(), op), self.cur_loc())
     }
 
-    fn new_commandlit(&self, string: impl Into<String>) -> Token {
-        Annot::new(TokenKind::CommandLit(string.into()), self.cur_loc())
+    fn new_commandlit(&self, string: RubyString) -> Result<Token, LexerErr> {
+        Ok(Annot::new(
+            TokenKind::CommandLit(string.as_string()?),
+            self.cur_loc(),
+        ))
     }
 
     fn new_punct(&self, punc: Punct) -> Token {
@@ -1526,7 +1529,7 @@ mod test {
             Token::new_intlit($num, Loc($loc_0, $loc_1))
         };
         (StringLit($item:expr), $loc_0:expr, $loc_1:expr) => {
-            Token::new_stringlit($item, Loc($loc_0, $loc_1))
+            Token::new_stringlit($item.to_string().into(), Loc($loc_0, $loc_1))
         };
         (OpenString($item:expr, $delimiter:expr), $loc_0:expr, $loc_1:expr) => {
             Token::new_open_dq($item, $delimiter, Loc($loc_0, $loc_1))

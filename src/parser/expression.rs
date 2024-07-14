@@ -643,7 +643,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                         return Ok(Node::new_integer(line as i64, loc));
                     }
                     "__FILE__" => {
-                        let file = self.path.to_string_lossy();
+                        let file = self.path.to_string_lossy().to_string();
                         return Ok(Node::new_string(file.into(), loc));
                     }
                     _ => {}
@@ -723,16 +723,16 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
             TokenKind::BignumLit(num) => Ok(Node::new_bignum(num, loc)),
             TokenKind::FloatLit(num) => Ok(Node::new_float(num, loc)),
             TokenKind::ImaginaryLit(num) => Ok(Node::new_imaginary(num, loc)),
-            TokenKind::StringLit(s) => Ok(self.parse_string_literal(&s)?),
+            TokenKind::StringLit(s) => self.parse_string_literal(s),
             TokenKind::CommandLit(s) => {
-                let content = Node::new_string(s, loc);
+                let content = Node::new_string(s.into(), loc);
                 Ok(Node::new_command(content))
             }
             TokenKind::OpenString(s, term, level) => {
-                self.parse_interporated_string_literal(&s, term, level)
+                self.parse_interporated_string_literal(s.into(), term, level)
             }
             TokenKind::OpenCommand(s, term, level) => {
-                let content = self.parse_interporated_string_literal(&s, term, level)?;
+                let content = self.parse_interporated_string_literal(s.into(), term, level)?;
                 Ok(Node::new_command(content))
             }
             TokenKind::Punct(punct) => match punct {

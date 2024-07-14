@@ -49,7 +49,7 @@ pub(crate) enum TokenKind {
     BignumLit(BigInt),
     FloatLit(f64),
     ImaginaryLit(NReal),
-    StringLit(String),
+    StringLit(RubyString),
     Regex(String, String),
     CommandLit(String),
     Reserved(Reserved),
@@ -239,8 +239,8 @@ impl Token {
         Annot::new(TokenKind::ImaginaryLit(num), loc)
     }
 
-    pub(crate) fn new_stringlit(string: impl Into<String>, loc: Loc) -> Self {
-        Annot::new(TokenKind::StringLit(string.into()), loc)
+    pub(crate) fn new_stringlit(string: RubyString, loc: Loc) -> Self {
+        Annot::new(TokenKind::StringLit(string), loc)
     }
 
     pub(crate) fn new_open_string(
@@ -307,7 +307,10 @@ impl Token {
             TokenKind::NumberedParam(_, ident) => ident,
             TokenKind::Const(ident) => ident,
             TokenKind::InstanceVar(ident) => ident,
-            TokenKind::StringLit(ident) => ident,
+            TokenKind::StringLit(ident) => match ident.as_str() {
+                Ok(s) => s,
+                Err(_) => return None,
+            },
             TokenKind::Reserved(reserved) => reserved.to_str(),
             _ => return None,
         };
