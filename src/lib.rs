@@ -1,4 +1,3 @@
-#![feature(const_option)]
 mod error;
 mod lvar_collector;
 mod node;
