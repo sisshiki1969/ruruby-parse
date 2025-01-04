@@ -886,6 +886,43 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    fn read_unicode_escape_sequence(
+        &mut self,
+        s: &mut RubyString,
+        strict: bool,
+    ) -> Result<(), LexerErr> {
+        let mut u = 0;
+        if strict {
+            for _ in 0..4 {
+                u = 16 * u
+                    + self.expect_hex().map_err(|_| {
+                        Self::error_parse("Invalid Unicode escape sequence.", self.pos)
+                    })?;
+            }
+        } else {
+            let mut i = 0;
+            while let Some(h) = self.consume_hex() {
+                if i == 6 {
+                    return Err(Self::error_parse(
+                        "Invalid Unicode escape sequence; maximum length is 6 digits.",
+                        self.pos,
+                    ));
+                }
+                u = u * 16 + h;
+                i += 1;
+            }
+        };
+        if let Some(u) = char::from_u32(u) {
+            s.push_char(u);
+            Ok(())
+        } else {
+            Err(Self::error_parse(
+                "Invalid Unicode escape sequence",
+                self.pos,
+            ))
+        }
+    }
+
     /// Read char literal.
     pub(crate) fn read_char_literal(&mut self, buf: &mut RubyString) -> Result<(), LexerErr> {
         let c = self.get()?;
@@ -1066,14 +1103,18 @@ impl<'a> Lexer<'a> {
                 return Ok(());
             }
             'u' => {
-                let mut code = 0;
-                for _ in 0..4 {
-                    code = code * 16 + self.expect_hex()?;
+                if self.consume('{') {
+                    loop {
+                        while self.consume(' ') {}
+                        if self.consume('}') {
+                            break;
+                        }
+                        self.read_unicode_escape_sequence(buf, false)?;
+                    }
+                } else {
+                    self.read_unicode_escape_sequence(buf, true)?
                 }
-                match std::char::from_u32(code) {
-                    Some(ch) => ch,
-                    None => return Err(Self::error_parse("Invalid UTF-8 character.", self.pos)),
-                }
+                return Ok(());
             }
             c if ('0'..='7').contains(&c) => {
                 if let Some(num) = self.consume_tri_octal(c) {
