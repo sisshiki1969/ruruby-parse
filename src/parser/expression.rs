@@ -786,16 +786,16 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                 Reserved::Case => self.parse_case(),
                 Reserved::Def => self.parse_def(),
                 Reserved::Class => {
-                    if self.is_method_context() {
-                        return Err(error_unexpected(
-                            loc,
-                            "SyntaxError: class definition in method body.",
-                        ));
-                    }
                     let loc = self.prev_loc();
                     if self.consume_punct(Punct::Shl)? {
                         self.parse_singleton_class(loc)
                     } else {
+                        if self.is_method_context() {
+                            return Err(error_unexpected(
+                                loc,
+                                "SyntaxError: class definition in method body.",
+                            ));
+                        }
                         self.parse_class(false)
                     }
                 }
