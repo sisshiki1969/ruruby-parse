@@ -131,10 +131,10 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
 
     /// Check whether parameter delegation exists or not in the method def of current context.
     /// If not, return ParseErr.
-    fn check_delegate(&self) -> Result<(), LexerErr> {
+    fn check_forwarding(&self) -> Result<(), LexerErr> {
         for ctx in self.scope.iter().rev() {
             if ctx.kind == ScopeKind::Method {
-                if ctx.lvar.delegate_param.is_some() {
+                if ctx.lvar.forwarding_param.is_some() {
                     return Ok(());
                 } else {
                     break;

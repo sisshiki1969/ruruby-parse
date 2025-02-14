@@ -877,8 +877,8 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                 }
             }
             if self.consume_punct(Punct::Range3)? {
-                self.check_delegate()?;
-                arglist.delegate = true;
+                self.check_forwarding()?;
+                arglist.forwarding = true;
             } else if self.consume_punct(Punct::Mul)? {
                 // splat argument
                 let loc = self.prev_loc();

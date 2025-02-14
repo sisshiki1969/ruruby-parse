@@ -46,7 +46,7 @@ pub struct LvarCollector {
     pub table: LvarTable,
     kwrest: Option<LvarId>,
     block: Option<LvarId>,
-    pub delegate_param: Option<LvarId>,
+    pub forwarding_param: Option<LvarId>,
     pub numbered_param: Option<crate::Loc>,
     pub prohibit_numbered_param: Option<crate::Loc>,
 }
@@ -60,7 +60,7 @@ impl LvarCollector {
             table,
             kwrest: None,
             block: None,
-            delegate_param: None,
+            forwarding_param: None,
             numbered_param: None,
             prohibit_numbered_param: None,
         }
@@ -75,7 +75,7 @@ impl LvarCollector {
             table: LvarTable::new(),
             kwrest: None,
             block: None,
-            delegate_param: None,
+            forwarding_param: None,
             numbered_param: None,
             prohibit_numbered_param: None,
         }
@@ -125,7 +125,7 @@ impl LvarCollector {
     /// Return None if `val` already exists.
     pub fn insert_delegate_param(&mut self) -> Option<LvarId> {
         let lvar = self.insert_new("...".to_string())?;
-        self.delegate_param = Some(lvar);
+        self.forwarding_param = Some(lvar);
         Some(lvar)
     }
 

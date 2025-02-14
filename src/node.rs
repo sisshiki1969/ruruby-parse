@@ -216,8 +216,8 @@ pub struct ArgList {
     pub hash_splat: Vec<Node>,
     /// block
     pub block: Option<Box<Node>>,
-    /// args delegate
-    pub delegate: bool,
+    /// args forwarding
+    pub forwarding: bool,
     /// has splat argument
     pub splat: bool,
 }
@@ -229,7 +229,7 @@ impl ArgList {
             kw_args: vec![],
             hash_splat: vec![],
             block: None,
-            delegate: false,
+            forwarding: false,
             splat: false,
         }
     }
@@ -240,7 +240,7 @@ impl ArgList {
             kw_args: vec![],
             hash_splat: vec![],
             block: None,
-            delegate: false,
+            forwarding: false,
             splat: false,
         }
     }
@@ -251,7 +251,7 @@ impl ArgList {
             kw_args: vec![],
             hash_splat: vec![],
             block: Some(block),
-            delegate: false,
+            forwarding: false,
             splat: false,
         }
     }
