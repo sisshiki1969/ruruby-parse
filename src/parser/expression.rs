@@ -321,7 +321,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                 lhs = Node::new_binop(BinOp::Cmp(CmpKind::Lt), lhs, rhs);
             } else if self.consume_punct_no_term(Punct::Cmp)? {
                 let rhs = self.parse_arg_bitor()?;
-                lhs = Node::new_binop(BinOp::Cmp(CmpKind::Cmp), lhs, rhs);
+                lhs = Node::new_binop(BinOp::Compare, lhs, rhs);
             } else {
                 break;
             }
