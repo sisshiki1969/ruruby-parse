@@ -950,7 +950,7 @@ impl<'a> Lexer<'a> {
                 s.push('x');
             } else if self.consume('o') {
                 // expand "#{}" only once
-                s.push('o');
+                //s.push('o');
             } else if self.consume('u') {
                 // Encoding+ utf-8
             } else if self.consume('n') {
