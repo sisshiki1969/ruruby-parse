@@ -209,7 +209,14 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
             let val = Node::new_nil(loc);
             return Ok((val, loc));
         };
-        let val = self.parse_arg()?;
+        let mut args = self.parse_mul_assign_rhs(None)?;
+        let val = if args.len() == 1 {
+            args.remove(0)
+        } else {
+            let loc = loc.merge(self.prev_loc());
+            Node::new_array(args, loc)
+        };
+
         let ret_loc = val.loc();
         if self.consume_punct_no_term(Punct::Comma)? {
             let mut vec = vec![val, self.parse_arg()?];
