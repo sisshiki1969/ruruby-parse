@@ -210,7 +210,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
             return Ok((val, loc));
         };
         let mut args = self.parse_mul_assign_rhs(None)?;
-        let val = if args.len() == 1 {
+        let val = if args.len() == 1 && !matches!(args[0].kind, NodeKind::Splat(..)) {
             args.remove(0)
         } else {
             let loc = loc.merge(self.prev_loc());
