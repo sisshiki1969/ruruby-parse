@@ -281,7 +281,7 @@ pub enum CmpKind {
     Gt = 4,
     Ge = 5,
     TEq = 6,
-    Cmp = 7,
+    //Cmp = 7,
 }
 
 impl std::fmt::Debug for CmpKind {
@@ -294,7 +294,7 @@ impl std::fmt::Debug for CmpKind {
             Self::Gt => write!(f, ">"),
             Self::Ge => write!(f, ">="),
             Self::TEq => write!(f, "==="),
-            Self::Cmp => write!(f, "<=>"),
+            //Self::Cmp => write!(f, "<=>"),
         }
     }
 }
@@ -309,7 +309,7 @@ impl CmpKind {
             4 => Self::Gt,
             5 => Self::Ge,
             6 => Self::TEq,
-            7 => Self::Cmp,
+            //7 => Self::Cmp,
             _ => unimplemented!(),
         }
     }
@@ -328,6 +328,7 @@ pub enum BinOp {
     BitAnd,
     BitOr,
     BitXor,
+    Compare,
     Cmp(CmpKind),
     LAnd,
     LOr,
