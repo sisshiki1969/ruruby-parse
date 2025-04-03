@@ -116,6 +116,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
         let mut mlhs = vec![node];
         let old = self.suppress_acc_assign;
         self.suppress_acc_assign = true;
+        let mut splat_flag = false;
         loop {
             if self.peek_punct_no_term(Punct::Assign) {
                 for n in &mlhs {
@@ -124,7 +125,19 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                 mlhs.push(Node::new_discard(loc));
                 break;
             }
-            let node = self.parse_method_call()?;
+            let node = if self.consume_punct(Punct::Mul)? {
+                if splat_flag {
+                    let loc = self.prev_loc();
+                    return Err(error_unexpected(
+                        loc,
+                        "multiple splats in multiple assignment",
+                    ));
+                }
+                splat_flag = true;
+                Node::new_splat(self.parse_method_call()?, loc)
+            } else {
+                self.parse_method_call()?
+            };
             mlhs.push(node);
             if !self.consume_punct_no_term(Punct::Comma)? {
                 break;
