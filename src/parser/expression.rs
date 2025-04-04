@@ -130,11 +130,13 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                     let loc = self.prev_loc();
                     return Err(error_unexpected(
                         loc,
-                        "multiple splats in multiple assignment",
+                        "Multiple splat operators are not allowed.",
                     ));
                 }
                 splat_flag = true;
-                Node::new_splat(self.parse_method_call()?, loc)
+                let node = self.parse_method_call()?;
+                let loc = node.loc;
+                Node::new_splat(node, loc)
             } else {
                 self.parse_method_call()?
             };
