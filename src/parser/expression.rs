@@ -225,8 +225,8 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
             return Ok(lhs);
         }
         if self.consume_punct_no_term(Punct::Assign)? {
-            let lhs = self.check_lhs(lhs)?;
             let mrhs = self.parse_mul_assign_rhs(None)?;
+            let lhs = self.check_lhs(lhs)?;
             Ok(Node::new_mul_assign(vec![lhs], mrhs))
         } else if let Some(op) = self.consume_assign_op_no_term()? {
             // <lhs> <assign_op> <arg>
@@ -454,8 +454,8 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
     fn parse_accesory_assign(&mut self, lhs: Node) -> Result<Node, LexerErr> {
         if !self.suppress_acc_assign {
             if self.consume_punct_no_term(Punct::Assign)? {
-                let lhs = self.check_lhs(lhs)?;
                 let mrhs = self.parse_mul_assign_rhs_if_allowed()?;
+                let lhs = self.check_lhs(lhs)?;
                 return Ok(Node::new_mul_assign(vec![lhs], mrhs));
             } else if let Some(op) = self.consume_assign_op_no_term()? {
                 return self.parse_assign_op(lhs, op);
