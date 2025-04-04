@@ -530,7 +530,11 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                 if let TokenKind::Const(_) = self.peek()?.kind {
                     let loc = node.loc;
                     let name = self.expect_const()?;
-                    if let NodeKind::Const {
+                    if self.consume_punct_no_term(Punct::LParen)? {
+                        // Foo::Bar()
+                        let arglist = self.parse_arglist_block(Punct::RParen)?;
+                        Node::new_mcall(node, name, arglist, false, self.prev_loc())
+                    } else if let NodeKind::Const {
                         toplevel,
                         parent,
                         mut prefix,
