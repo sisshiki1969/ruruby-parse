@@ -110,13 +110,13 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
         Ok(node)
     }
 
-    fn parse_mul_assign(&mut self, node: Node) -> Result<Node, LexerErr> {
+    fn parse_mul_assign(&mut self, first_lhs: Node) -> Result<Node, LexerErr> {
         // EXPR : MLHS `=' MRHS
-        let loc = node.loc;
-        let mut mlhs = vec![node];
+        let loc = first_lhs.loc;
+        let mut splat_flag = matches!(first_lhs.kind, NodeKind::Splat(_));
+        let mut mlhs = vec![first_lhs];
         let old = self.suppress_acc_assign;
         self.suppress_acc_assign = true;
-        let mut splat_flag = false;
         loop {
             if self.peek_punct_no_term(Punct::Assign) {
                 for n in &mlhs {
@@ -789,6 +789,21 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                 Punct::Rem => self.parse_percent_notation(),
                 Punct::Question => self.parse_char_literal(),
                 Punct::Shl => self.parse_heredocument(),
+                Punct::Mul => {
+                    let first_lhs = self.parse_method_call()?;
+                    let loc = loc.merge(first_lhs.loc());
+                    let first_lhs = Node::new_splat(first_lhs, loc);
+                    if self.consume_punct_no_term(Punct::Comma)? {
+                        self.parse_mul_assign(first_lhs)
+                    } else if self.consume_punct_no_term(Punct::Assign)? {
+                        let mrhs = self.parse_mul_assign_rhs_if_allowed()?;
+                        let lhs = self.check_lhs(first_lhs)?;
+                        Ok(Node::new_mul_assign(vec![lhs], mrhs))
+                    } else {
+                        let loc = self.loc();
+                        return Err(error_unexpected(loc, "Expected '=' or ','."));
+                    }
+                }
                 _ => {
                     return Err(error_unexpected(
                         loc,
