@@ -1047,6 +1047,7 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
 
     /// Check whether `lhs` is a local variable or not.
     fn check_lhs(&mut self, lhs: Node) -> Result<Node, LexerErr> {
+        let loc = lhs.loc();
         if let NodeKind::Ident(name) = lhs.kind {
             if name.starts_with('_') {
                 let mut iter = name.chars();
@@ -1073,7 +1074,9 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
                     _ => {}
                 }
             }
-        };
+        } else if let NodeKind::Splat(lhs) = lhs.kind {
+            return Ok(Node::new_splat(self.check_lhs(*lhs)?, loc));
+        }
         Ok(lhs)
     }
 
