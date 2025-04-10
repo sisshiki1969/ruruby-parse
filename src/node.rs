@@ -879,6 +879,7 @@ impl Node {
 #[derive(Debug, Clone, PartialEq)]
 enum FreeFormatMode {
     Normal,
+    CharacterClass,
     Comment,
 }
 struct FreeFormatContext {
@@ -895,21 +896,28 @@ impl FreeFormatContext {
     }
 
     fn put_string(&mut self, body: &String) {
-        body.chars().for_each(|ch| self.put(ch));
-    }
-
-    fn put(&mut self, ch: char) {
-        match self.state {
-            FreeFormatMode::Normal => {
-                if ch == '#' {
-                    self.state = FreeFormatMode::Comment;
-                } else if !ch.is_ascii_whitespace() {
-                    self.body.push(ch);
+        for ch in body.chars() {
+            match self.state {
+                FreeFormatMode::Normal => {
+                    if ch == '#' {
+                        self.state = FreeFormatMode::Comment;
+                    } else if ch == '[' {
+                        self.body.push(ch);
+                        self.state = FreeFormatMode::CharacterClass;
+                    } else if !ch.is_ascii_whitespace() {
+                        self.body.push(ch);
+                    }
                 }
-            }
-            FreeFormatMode::Comment => {
-                if ch == '\n' {
-                    self.state = FreeFormatMode::Normal;
+                FreeFormatMode::CharacterClass => {
+                    self.body.push(ch);
+                    if ch == ']' {
+                        self.state = FreeFormatMode::Normal;
+                    }
+                }
+                FreeFormatMode::Comment => {
+                    if ch == '\n' {
+                        self.state = FreeFormatMode::Normal;
+                    }
                 }
             }
         }
