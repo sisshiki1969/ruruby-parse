@@ -430,7 +430,26 @@ impl Node {
         Node::new(NodeKind::Hash(key_value, is_const), loc)
     }
 
-    pub(crate) fn new_regexp(regex: Vec<Node>, op: String, loc: Loc) -> Self {
+    pub(crate) fn new_regexp(
+        mut regex: Vec<Node>,
+        op: String,
+        free_format: bool,
+        loc: Loc,
+    ) -> Self {
+        if free_format {
+            let mut context = FreeFormatContext::new();
+            regex.iter_mut().for_each(|node| match &mut node.kind {
+                NodeKind::String(s) => {
+                    context.put_string(s);
+                    *s = context.extract();
+                }
+                kind => {
+                    if context.state == FreeFormatMode::Comment {
+                        *kind = NodeKind::String("".to_string());
+                    }
+                }
+            });
+        };
         let is_const = regex.iter().all(|n| n.is_const_expr());
         Node::new(NodeKind::RegExp(regex, op, is_const), loc)
     }
@@ -854,5 +873,49 @@ impl Node {
             }
             _ => None,
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum FreeFormatMode {
+    Normal,
+    Comment,
+}
+struct FreeFormatContext {
+    state: FreeFormatMode,
+    body: String,
+}
+
+impl FreeFormatContext {
+    fn new() -> Self {
+        FreeFormatContext {
+            state: FreeFormatMode::Normal,
+            body: String::new(),
+        }
+    }
+
+    fn put_string(&mut self, body: &String) {
+        body.chars().for_each(|ch| self.put(ch));
+    }
+
+    fn put(&mut self, ch: char) {
+        match self.state {
+            FreeFormatMode::Normal => {
+                if ch == '#' {
+                    self.state = FreeFormatMode::Comment;
+                } else if !ch.is_ascii_whitespace() {
+                    self.body.push(ch);
+                }
+            }
+            FreeFormatMode::Comment => {
+                if ch == '\n' {
+                    self.state = FreeFormatMode::Normal;
+                }
+            }
+        }
+    }
+
+    fn extract(&mut self) -> String {
+        std::mem::take(&mut self.body)
     }
 }

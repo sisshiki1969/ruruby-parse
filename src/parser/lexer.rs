@@ -50,7 +50,11 @@ enum VarKind {
 #[derive(Debug, Clone, PartialEq)]
 enum InterpolateState {
     Finished(RubyString),
-    FinishedRegex(String, String),
+    FinishedRegex {
+        body: String,
+        postfix: String,
+        free_format: bool,
+    },
     NewInterpolation(RubyString, usize), // (string, paren_level)
 }
 
@@ -178,7 +182,11 @@ impl<'a> Lexer<'a> {
     /// Get token as a regular expression.
     pub(crate) fn get_regexp(&mut self) -> Result<Token, LexerErr> {
         match self.read_regexp_sub()? {
-            InterpolateState::FinishedRegex(s, op) => Ok(self.new_regexlit(s, op)),
+            InterpolateState::FinishedRegex {
+                body,
+                postfix,
+                free_format,
+            } => Ok(self.new_regexlit(body, postfix, free_format)),
             InterpolateState::NewInterpolation(s, _) => Ok(self.new_open_reg(s.as_string()?)),
             _ => unreachable!(),
         }
@@ -936,8 +944,9 @@ impl<'a> Lexer<'a> {
     }
 
     /// Convert postfix of regular expression.
-    pub(crate) fn check_postfix(&mut self) -> String {
+    pub(crate) fn check_postfix(&mut self) -> (String, bool) {
         let mut s = "m".to_string();
+        let mut free_format = false;
         loop {
             if self.consume('i') {
                 // ignore case
@@ -947,7 +956,8 @@ impl<'a> Lexer<'a> {
                 s.push('s');
             } else if self.consume('x') {
                 // free format mode
-                s.push('x');
+                //s.push('x');
+                free_format = true;
             } else if self.consume('o') {
                 // expand "#{}" only once
                 //s.push('o');
@@ -959,40 +969,44 @@ impl<'a> Lexer<'a> {
                 break;
             };
         }
-        s
+        (s, free_format)
     }
 
     /// Scan as regular expression.
     fn read_regexp_sub(&mut self) -> Result<InterpolateState, LexerErr> {
-        let mut s = "".to_string();
+        let mut body = "".to_string();
         let mut char_class = 0;
         loop {
             match self.get()? {
                 '/' => {
-                    let op = self.check_postfix();
-                    return Ok(InterpolateState::FinishedRegex(s, op));
+                    let (postfix, free_format) = self.check_postfix();
+                    return Ok(InterpolateState::FinishedRegex {
+                        body,
+                        postfix,
+                        free_format,
+                    });
                 }
                 '[' => {
                     char_class += 1;
-                    s.push('[');
+                    body.push('[');
                 }
                 ']' => {
                     char_class -= 1;
-                    s.push(']');
+                    body.push(']');
                 }
                 '\\' => {
                     let ch = self.get()?;
                     match ch {
-                        'a' => s += "\\a",
+                        'a' => body += "\\a",
                         // '\b' is valid only in the inner of character class. Otherwise, shoud be treated as "\x08".
-                        'b' => s += if char_class == 0 { "\\b" } else { "\\x08" },
-                        'e' => s += "\\x1b",
-                        'f' => s += "\\f",
-                        'n' => s += "\\n",
-                        'r' => s += "\\r",
-                        's' => s += "[[:space:]]",
-                        't' => s += "\\t",
-                        'v' => s += "\\v",
+                        'b' => body += if char_class == 0 { "\\b" } else { "\\x08" },
+                        'e' => body += "\\x1b",
+                        'f' => body += "\\f",
+                        'n' => body += "\\n",
+                        'r' => body += "\\r",
+                        's' => body += "[[:space:]]",
+                        't' => body += "\\t",
+                        'v' => body += "\\v",
                         'x' => {
                             // CRuby allows not only "\x1f" but "\xf".
                             let mut x = 0;
@@ -1001,34 +1015,34 @@ impl<'a> Lexer<'a> {
                                 if let Some(c) = self.consume_hex() {
                                     x = x * 16 + c;
                                 }
-                                s += &format!("\\x{:02x}", x);
+                                body += &format!("\\x{:02x}", x);
                             } else {
-                                s += "\\x";
+                                body += "\\x";
                             }
                         }
                         _ => {
-                            s.push('\\');
+                            body.push('\\');
                             // TODO: It is necessary to count capture groups
                             // to determine whether backref or octal digit.
                             // Current impl. may cause problems.
                             if '1' >= ch && ch <= '9' && !self.peek_digit() {
-                                s.push(ch);
+                                body.push(ch);
                             } else if ('0'..='7').contains(&ch) {
                                 let hex = format!("x{:02x}", self.consume_tri_octal(ch).unwrap());
-                                s += &hex;
+                                body += &hex;
                             } else {
-                                s.push(ch);
+                                body.push(ch);
                             }
                         }
                     };
                 }
                 '#' => match self.peek() {
                     Some(ch) if ch == '{' || ch == '$' || ch == '@' => {
-                        return Ok(InterpolateState::NewInterpolation(s.into(), 0))
+                        return Ok(InterpolateState::NewInterpolation(body.into(), 0))
                     }
-                    _ => s.push('#'),
+                    _ => body.push('#'),
                 },
-                c => s.push(c),
+                c => body.push(c),
             }
         }
     }
@@ -1446,8 +1460,15 @@ impl<'a> Lexer<'a> {
         Annot::new(TokenKind::StringLit(string.into()), self.cur_loc())
     }
 
-    fn new_regexlit(&self, string: impl Into<String>, op: String) -> Token {
-        Annot::new(TokenKind::Regex(string.into(), op), self.cur_loc())
+    fn new_regexlit(&self, string: impl Into<String>, op: String, free_format: bool) -> Token {
+        Annot::new(
+            TokenKind::Regex {
+                body: string.into(),
+                postfix: op,
+                free_format,
+            },
+            self.cur_loc(),
+        )
     }
 
     fn new_commandlit(&self, string: RubyString) -> Result<Token, LexerErr> {

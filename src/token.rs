@@ -50,7 +50,11 @@ pub(crate) enum TokenKind {
     FloatLit(f64),
     ImaginaryLit(NReal),
     StringLit(RubyString),
-    Regex(String, String),
+    Regex {
+        body: String,
+        postfix: String,
+        free_format: bool,
+    },
     CommandLit(String),
     Reserved(Reserved),
     Punct(Punct),
