@@ -879,6 +879,7 @@ impl Node {
 #[derive(Debug, Clone, PartialEq)]
 enum FreeFormatMode {
     Normal,
+    Escape,
     CharacterClass,
     Comment,
 }
@@ -904,9 +905,16 @@ impl FreeFormatContext {
                     } else if ch == '[' {
                         self.body.push(ch);
                         self.state = FreeFormatMode::CharacterClass;
+                    } else if ch == '\\' {
+                        self.body.push(ch);
+                        self.state = FreeFormatMode::Escape;
                     } else if !ch.is_ascii_whitespace() {
                         self.body.push(ch);
                     }
+                }
+                FreeFormatMode::Escape => {
+                    self.body.push(ch);
+                    self.state = FreeFormatMode::Normal;
                 }
                 FreeFormatMode::CharacterClass => {
                     self.body.push(ch);
