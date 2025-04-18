@@ -904,6 +904,9 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
     fn parse_arglist(&mut self, punct: impl Into<Option<Punct>>) -> Result<ArgList, LexerErr> {
         let punct = punct.into();
         let mut arglist = ArgList::default();
+        if self.peek()?.kind == TokenKind::Punct(Punct::Comma) {
+            return Ok(arglist);
+        }
         loop {
             if let Some(punct) = punct {
                 if self.consume_punct(punct)? {

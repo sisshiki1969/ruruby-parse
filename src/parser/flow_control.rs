@@ -165,34 +165,16 @@ impl<'a, OuterContext: LocalsContext> Parser<'a, OuterContext> {
     }
 
     pub(super) fn parse_break(&mut self) -> Result<Node, LexerErr> {
-        /*if !self.defined_mode && !self.is_breakable() {
-            return Err(LexerErr(
-                ParseErrKind::SyntaxError("Invalid break".to_string()),
-                self.prev_loc(),
-            ));
-        }*/
         let (node, loc) = self.parse_break_sub()?;
         Ok(Node::new_break(node, loc))
     }
 
     pub(super) fn parse_next(&mut self) -> Result<Node, LexerErr> {
-        /*if !self.defined_mode && !self.is_breakable() {
-            return Err(LexerErr(
-                ParseErrKind::SyntaxError("Invalid next".to_string()),
-                self.prev_loc(),
-            ));
-        }*/
         let (node, loc) = self.parse_break_sub()?;
         Ok(Node::new_next(node, loc))
     }
 
     pub(super) fn parse_redo(&mut self) -> Result<Node, LexerErr> {
-        /*if !self.defined_mode && !self.is_breakable() {
-            return Err(LexerErr(
-                ParseErrKind::SyntaxError("Invalid redo".to_string()),
-                self.prev_loc(),
-            ));
-        }*/
         let loc = self.prev_loc();
         Ok(Node::new_redo(loc))
     }
