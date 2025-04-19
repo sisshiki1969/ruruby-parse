@@ -4,7 +4,6 @@ version = "0.0.1"
 authors = ["monochrome <sisshiki@mac.com>"]
 edition = "2018"
 description = "Ruby parser written with Rust."
-repository = "https://github.com/sisshiki1969/ruruby_parse"
 license = "MIT OR Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
